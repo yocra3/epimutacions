@@ -34,4 +34,4 @@ We will evaluate the methods implemented in `epimutacions` in DNA methylation da
 
 ## Contact
 
-Team leader: [Carlos Ruiz](carlos.ruiza@upf.edu)
+Team leader: Carlos Ruiz [(carlos.ruiza@upf.edu)](carlos.ruiza@upf.edu)
