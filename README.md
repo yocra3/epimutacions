@@ -30,7 +30,7 @@ In the Biohackathon, we will be focused in writing R code. If you have experienc
 
 ### After the Biohackathon
 
-We will evaluate the methods implemented in `epimutacions` in DNA methylation datasets. Collaborations to apply our dataset to new datasets can be considered.
+We will evaluate the methods implemented in `epimutacions` in DNA methylation datasets. Collaborations to apply our method to new datasets can be considered.
 
 ## Contact
 
