@@ -2,7 +2,8 @@ Package: epimutacions
 Title: Robust Outlier identification for DNA methylation data
 Version: 0.0.0.9000
 Authors@R: 
-    person("BioHackathon team 5", role = "aut"))
+    person("BioHackathon team 5", role = c("cre", "aut"), 
+    email = "carlos.ruiza@upf.edu")
 Description: Collection of functions for robust outlier identification in DNA methylation data. 
 License: MIT + file LICENSE
 Imports:
