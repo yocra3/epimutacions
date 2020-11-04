@@ -1,0 +1,23 @@
+Package: epimutacions
+Title: Robust Outlier identification for DNA methylation data
+Version: 0.0.0.9000
+Authors@R: 
+    person("BioHackathon team 5"", role = "aut"))
+Description: Collection of functions for robust outlier identification in DNA methylation data. 
+License: MIT + file LICENSE
+Imports:
+	minfi,
+	a4Base,
+	bumphunter,
+	mlm,
+	isotree,
+	robustbase,
+	rrcovHD,
+	tibble
+Suggests: knitr, rmarkdown
+VignetteBuilder: knitr
+Encoding: UTF-8
+Depends: R (>= 4.0), Biobase
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
