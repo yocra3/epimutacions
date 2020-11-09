@@ -19,7 +19,7 @@ Suggests: knitr, rmarkdown
 Remotes: dgarrimar/mlm
 VignetteBuilder: knitr
 Encoding: UTF-8
-Depends: R (>= 4.0), Biobase
+Depends: R (>= 3.6), Biobase
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
