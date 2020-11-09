@@ -14,10 +14,10 @@ get_betas <- function(bump, dataset) {
 		stop("Argument 'dataset' must be a 'GenomicRatioSet' or an 'ExpressionSet'")
 	}
 	# Extract the beta values
-	if(type == 1) {
-		betas <- minfi::getBeta(set[bump$indexStart:bump$indexEnd, ]) 
+	if(data_type == 1) {
+		betas <- minfi::getBeta(dataset[bump$indexStart:bump$indexEnd, ]) 
 	} else {
-		betas <- Biobase::exprs(set[bump$indexStart:bump$indexEnd, ])
+		betas <- Biobase::exprs(dataset[bump$indexStart:bump$indexEnd, ])
 	}
 	# Remove NAs
 	betas <- na.omit(betas)
