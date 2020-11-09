@@ -1,27 +1,27 @@
+#' Function to extract the methylation of a specific region
+#' 
+#' This function extracts the methylation from an GenomicRatioSet or
+#' ExpressionSet object given a region defined as a bumps object.
+#' 
+#' @param bumps The region to be extracted as a bumps object.
+#' @param dataset The full methylation set as GenomicRatioSet or ExpressionSet.
+#' @return The betas as a matrix.
 #' @export
-
-BumpBetaMatrix<-function(bump,set)
-{
-  #dataset type
-  
-  type <- charmatch(class(set), c("GenomicRatioSet", "ExpressionSet"))
-  
-  if(is.na(type))
-    stop("The data type must be 'GenomicRatioSet' or 'ExpressionSet'")
-  
-  #obtain beta values matrix
-  
-  if(type == 1)
-  {
-    beta.values <- minfi::getBeta(set[bump$indexStart:bump$indexEnd, ]) 
-  }
-  
-  else if (type == 2)
-  {
-    beta.values <- Biobase::exprs(set[bump$indexStart:bump$indexEnd, ])
-  }
-  
-  beta.values<-t(na.omit(beta.values))
-  
-  return(beta.values)
+get_betas <- function(bump, dataset) {
+	# Identify the class of the metylation data set
+	data_type <- charmatch(class(dataset), c("GenomicRatioSet", "ExpressionSet"))
+	if(is.na(data_type)) {
+		stop("Argument 'dataset' must be a 'GenomicRatioSet' or an 'ExpressionSet'")
+	}
+	# Extract the beta values
+	if(type == 1) {
+		betas <- minfi::getBeta(set[bump$indexStart:bump$indexEnd, ]) 
+	} else {
+		betas <- Biobase::exprs(set[bump$indexStart:bump$indexEnd, ])
+	}
+	# Remove NAs
+	betas <- na.omit(betas)
+	
+	# Return transposed matrix
+	return(t(betas))
 }
