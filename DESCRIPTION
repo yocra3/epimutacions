@@ -15,7 +15,10 @@ Imports:
 	robustbase,
 	rrcovHD,
 	tibble
-Suggests: knitr, rmarkdown
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat
 Remotes: dgarrimar/mlm
 VignetteBuilder: knitr
 Encoding: UTF-8
