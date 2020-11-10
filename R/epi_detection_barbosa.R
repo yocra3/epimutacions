@@ -1,4 +1,4 @@
-#' MEthod implementing Barbosa et. al. 2019 to detect epimutations
+#' Method implementing Barbosa et. al. 2019 to detect epimutations
 #' 
 #' @param cases GenomicRatioSet with cases (probands) methylation data
 #' @param controls GenomicRatioSet with controls methylation data to be used as
@@ -65,7 +65,7 @@ epi_detection_barbosa <- function(cases, controls, window = 1000) {
 					r_ii <- r_ii + 1
 				}
 				# if the new CpG is out the window taking into account the last include
-				# GpG, we include the region counter (r_cnt) it and increase the 
+				# GpG, we include the region counter (r_cnt), and increase the 
 				# row-counter (r_ii)
 				if(regions$pos[r_ii] + window < flag_df$pos[ii]) {
 					r_cnt <- r_cnt + 1
@@ -75,20 +75,25 @@ epi_detection_barbosa <- function(cases, controls, window = 1000) {
 			}
 		}
 		
+		# We remove all the regions that does not have N CpGs in them
 		fr <- data.frame(table(regions$region), stringsAsFactors = FALSE)
 		fr <- as.numeric(fr$Var1[fr$Freq > N])
-		
 		regions <- regions[regions$region %in% fr, ]
+		
+		# We rename the regions by adding "R"
 		regions$region <- paste0("R", regions$region)
 		return(regions)
 	}
 	
+	# We select the CpGs according to the direction of the outlier
 	flag_sup <- flag_result[flag_result$flag_qm_sup, ]
 	flag_inf <- flag_result[flag_result$flag_qm_inf, ]
 	
+	# We identify the regions taking into account the direction
 	reg_sup <- get_regions(flag_sup)
 	reg_inf <- get_regions(flag_inf)
 	
+	# We add a column indicating the direction of the regions/outliers
 	reg_sup$direction <- "+"
 	reg_inf$direction <- "-"
 	
