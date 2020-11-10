@@ -15,7 +15,7 @@
 #' @param method (string) The outlier scoring method. Choose from 
 #' "manova", "mlm", "iso.forest", "Mahdist.MCD".
 #'
-#' @return A tibble of epimutation regions for sample_id.
+#' @return A tibble of epimutation regions for sample_ids.
 #' @export
 #'
 #' @examples
