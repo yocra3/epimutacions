@@ -205,7 +205,7 @@ select_outlier_bumps <- function(bumps, method, pValue.cutoff, outlier.score){
 #' @examples
 format_bumps <- function(bumps, set, sample, reduced){
   df_out <- tibble::as_tibble(bumps)
-  df_out$sample <- sample
+  if(nrow(bumps) > 0) df_out$sample <- sample
   df_out$cpg_ids <- mapply(
     function(rown, i_st, i_end){paste(rown[i_st:i_end], collapse=",")},
     df_out$indexStart,
