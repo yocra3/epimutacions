@@ -15,6 +15,18 @@
 #' "manova", "mlm", "iso.forest", "Mahdist.MCD".
 #'
 #' @return A tibble of epimutation regions for sample_id.
+#' \describe{
+#' \item{sample}{(string) Sample_id in colnames(cases)}
+#' \item{chr}{(string) Chromosome}
+#' \item{start}{(integer) Start position on chromosome}
+#' \item{end}{(integer) End position on chromosome}
+#' \item{cpg_ids}{(string) Comma-separated CpG_ids in rownames(cases) spanned by region}
+#' \item{outlier_method}{(string) The outlier scoring method. Either
+#' "manova", "mlm", "iso.forest" or "Mahdist.MCD".}
+#' \item{outlier_score}{(numeric) The outlier score. A p-value for methods 
+#' "manova" or "mlm". A score produced by \code{\link[isotree]{isolation.forest}} 
+#' for method "iso.forest". A boolean for method "Mahdist.MCD". }
+#' }
 #' @export
 #'
 #' @examples
@@ -47,7 +59,7 @@ EpiMutations <- function(
   bumps <- compute_bump_outlier_scores(set, bumps, method, sample_id, design, nsamp)
   bumps <- select_outlier_bumps(bumps, method, pValue.cutoff, outlier.score)
   
-  return(format_bumps(bumps, set, sample_id, reduced_output))
+  return(format_bumps(bumps, set, sample_id, method, reduced_output))
 }
 
 check_params <- function(cases, controls, method){
@@ -156,34 +168,27 @@ compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp
       if(ncol(beta.values) > nrow(beta.values) - 2 ) {
         stop("Not enough samples to run MANOVA")
       }
-      bumps$manova[i]<-EpiMANOVA(beta.values, model)
-    }
-    if(method == "mlm") {
-      bumps$mlm[i]<-epiMLM(beta.values, model)  
-    }
-    if(method == "iso.forest") {
-      bumps$iso[i]<-epiIsolationForest(beta.values, sample)
-    }
-    if(method == "Mahdist.MCD") {
-      bumps$MahMCD[i]<-epiMahdist.MCD(beta.values, nsamp, sample)
+      bumps$outlier_score[i] <- EpiMANOVA(beta.values, model)
+    } else if(method == "mlm") {
+      bumps$outlier_score[i] <- epiMLM(beta.values, model)  
+    } else if(method == "iso.forest") {
+      bumps$outlier_score[i] <- epiIsolationForest(beta.values, sample)
+    } else if(method == "Mahdist.MCD") {
+      bumps$outlier_score[i] <- epiMahdist.MCD(beta.values, nsamp, sample)
     }
   }
+  
   return(bumps)
 }
 
 select_outlier_bumps <- function(bumps, method, pValue.cutoff, outlier.score){
 
-  if(method == "manova"){
-    outliers <- subset(bumps, manova < pValue.cutoff)
-  }
-  if(method == "mlm"){
-    outliers <- subset(bumps, mlm < pValue.cutoff)
-  }
-  if(method == "iso.forest"){
-    outliers <- subset(bumps, iso > outlier.score)
-  }
-  if(method == "Mahdist.MCD"){
-    outliers <- subset(bumps, MahMCD == TRUE)
+  if(method == "manova" || method == "mlm"){
+    outliers <- subset(bumps, outlier_score < pValue.cutoff)
+  } else if(method == "iso.forest"){
+    outliers <- subset(bumps, outlier_score > outlier.score)
+  } else if(method == "Mahdist.MCD"){
+    outliers <- subset(bumps, outlier_score == TRUE)
   }
   
   return(outliers)
@@ -203,9 +208,12 @@ select_outlier_bumps <- function(bumps, method, pValue.cutoff, outlier.score){
 #' @return A tibble dataframe where each row is an epimutation.
 #'
 #' @examples
-format_bumps <- function(bumps, set, sample, reduced){
+format_bumps <- function(bumps, set, sample, method, reduced){
   df_out <- tibble::as_tibble(bumps)
-  if(nrow(bumps) > 0) df_out$sample <- sample
+  if(nrow(bumps) > 0){
+    df_out$sample <- sample
+    df_out[["outlier_method"]] <- method
+  }
   df_out$cpg_ids <- mapply(
     function(rown, i_st, i_end){paste(rown[i_st:i_end], collapse=",")},
     df_out$indexStart,
@@ -213,7 +221,8 @@ format_bumps <- function(bumps, set, sample, reduced){
     MoreArgs = list(rown = rownames(set))
   )
   if(reduced){
-    df_out <- df_out[,c("sample", "chr", "start", "end", "cpg_ids")]
+    df_out <- df_out[, c("sample", "chr", "start", "end", "cpg_ids",
+                         "outlier_method", "outlier_score")]
   }
   return(df_out)
 }

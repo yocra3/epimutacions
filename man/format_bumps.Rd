@@ -4,7 +4,7 @@
 \alias{format_bumps}
 \title{Convert bumps object to a tibble with additional formatting.}
 \usage{
-format_bumps(bumps, set, sample, reduced)
+format_bumps(bumps, set, sample, method, reduced)
 }
 \arguments{
 \item{bumps}{(bumps) Bump object returned by \link[bumphunter]{bumphunter}.}
