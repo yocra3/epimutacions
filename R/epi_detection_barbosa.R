@@ -58,10 +58,10 @@ epi_detection_barbosa <- function(cases, controls, window_sz = 1000, N = 3, offs
 		chr = as.character(seqnames(rowRanges(cases))),
 		pos = start(rowRanges(cases)),
 		probands = bcas[ , 1],
-		flag_q_sup = bcas[, 1] >= bctr_pmax & bcas[, 1] >= bctr_max,
-		flag_q_inf = bcas[, 1] <= bctr_pmin & bcas[, 1] <= bctr_min,
-		flag_m_sup = bcas[, 1] >= bctr_mean,
-		flag_m_inf = bcas[, 1] <= bctr_mean,
+		flag_q_sup = bcas[, 1] >= bctr_pmax & bcas[, 1] >= bctr_max + offset_abs,
+		flag_q_inf = bcas[, 1] <= bctr_pmin & bcas[, 1] <= bctr_min - offset_abs,
+		flag_m_sup = bcas[, 1] >= bctr_mean + offset_mean,
+		flag_m_inf = bcas[, 1] <= bctr_mean - offset_mean,
 		stringsAsFactors = FALSE
 	)
 	flag_result$flag_q_sup[is.na(flag_result$flag_q_sup)] <- FALSE
