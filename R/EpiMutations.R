@@ -1,4 +1,23 @@
+#' Return epimutations as per Aref-Eshghi et al, 2020.
+#'
+#' @param cases (GenomicRatioSet, ExpressionSet) Case dataset.
+#' @param controls (GenomicRatioSet, ExpressionSet) Control dataset.
+#' @param sample_id (string) The column name in cases to compute epimutations for.
+#' @param cases_as_controls (bool) If True, all remaining cases are added in controls.
+#' If False, they are ignored.
+#' @param args.bumphunter (list) Additional arguments to pass to 
+#' \link[bumphunter]{bumphunter}.
+#' @param num.cpgs (integer) Bumps containing less cpgs than num.cpgs are discarded.
+#' @param pValue.cutoff 
+#' @param outlier.score 
+#' @param nsamp 
+#' @param method (string) The outlier scoring method. Choose from 
+#' "manova", "mlm", "iso.forest", "Mahdist.MCD".
+#'
+#' @return A tibble of epimutation regions for sample_id.
 #' @export
+#'
+#' @examples
 EpiMutations <- function(
   cases,
   controls,
@@ -15,8 +34,9 @@ EpiMutations <- function(
   check_params(cases, controls, method)
 
   set <- set_concat(cases, controls)
+  set <- filter_set(set, sample_id, cases_as_controls)
   
-  design <- make_bumphunter_model(set, sample_id)
+  design <- make_bumphunter_design(set, sample_id)
   bumps <- do.call(run_bumphunter,
                    c(list(set=set, design=design), args.bumphunter))
   
@@ -33,13 +53,13 @@ check_params <- function(cases, controls, method){
   if(is.null(cases)) {
     stop("'Diseases' parameter must be introduced")
   }
-  if(ncol(cases) != 1) {
-    stop('Number of cases has to be one')
-  }
+  # if(ncol(cases) != 1) {
+  #   stop('Number of cases has to be one')
+  # }
   if(ncol(controls) < 2) {
     stop('Number of samples in controls (aka.reference panel) must be greater than 2')
   }
-  if(length(method) !=1) {
+  if(length(method) != 1) {
     stop('Only one "method" can be chosen at a time')
   }
   type <- charmatch(class(cases), c("GenomicRatioSet", "ExpressionSet"))
@@ -53,28 +73,42 @@ check_params <- function(cases, controls, method){
 }
 
 set_concat <- function(cases, controls){
+  Biobase::pData(cases)[["origin"]] <- "case"
+  Biobase::pData(controls)[["origin"]] <- "control"
   if(class(cases) == "GenomicRatioSet") {
-    return(minfi::combineArrays(
+    set <- minfi::combineArrays(
       controls, cases,
       outType = c("IlluminaHumanMethylation450k",
         "IlluminaHumanMethylationEPIC",
         "IlluminaHumanMethylation27k"),
-        verbose = TRUE)
-      )
+        verbose = TRUE
+    )
   } else if (class(cases) == "ExpressionSet") {
-    return(a4Base::combineTwoExpressionSet(controls, cases))
+    set <- a4Base::combineTwoExpressionSet(controls, cases)
   }
+  return(set)
 }
 
-make_bumphunter_model <- function(set, sample_id){
-  # model over samples is 0,0,0,0...0,0,1
+filter_set <- function(set, sample_id, cases_as_controls){
+  if(!cases_as_controls){
+    mask <- (
+      Biobase::pData(set)[["origin"]] == "control" 
+        | colnames(set) == sample_id
+    )
+    set <- set[, mask]
+  }
+  return(set)
+}
+
+make_bumphunter_design <- function(set, sample_id){
+  # model is single sample, no covariates: 0,0,0,0...0,0,1
   Biobase::pData(set)$samp <- Biobase::pData(set)$sampleID == sample_id
   return(stats::model.matrix(~samp, Biobase::pData(set)))
 }
 
 #' Run the Bumphunter algorithm.
 #'
-#' See bumphunter doc for details \link[bumphunter]{bumphunter}
+#' See \link[bumphunter]{bumphunter} doc for details.
 #'
 #' @keywords internal
 #' 
