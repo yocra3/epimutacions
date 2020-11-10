@@ -28,7 +28,8 @@ EpiMutations <- function(
   pValue.cutoff = 0.01,
   outlier.score = 0.5,
   nsamp = "deterministic",
-  method = c("manova", "mlm", "iso.forest", "Mahdist.MCD")
+  method = c("manova", "mlm", "iso.forest", "Mahdist.MCD"),
+  reduced_output = T
 ) {
   
   check_params(cases, controls, method)
@@ -46,7 +47,7 @@ EpiMutations <- function(
   bumps <- compute_bump_outlier_scores(set, bumps, method, sample_id, design, nsamp)
   bumps <- select_outlier_bumps(bumps, method, pValue.cutoff, outlier.score)
   
-  return(format_bumps(bumps, sample_id))
+  return(format_bumps(bumps, set, sample_id, reduced_output))
 }
 
 check_params <- function(cases, controls, method){
@@ -188,7 +189,31 @@ select_outlier_bumps <- function(bumps, method, pValue.cutoff, outlier.score){
   return(outliers)
 }
 
-format_bumps <- function(bumps, sample){
-  bumps$sample <- sample
-  return(tibble::as_tibble(bumps))
+#' Convert bumps object to a tibble with additional formatting.
+#'
+#' @keywords internal
+#'
+#' @param bumps (bumps) Bump object returned by \link[bumphunter]{bumphunter}.
+#' @param set (GenomicRatioSet, ExpressionSet) The dataset on which the bumps
+#' were computed.
+#' @param sample (string) The sample name for all the bumps.
+#' @param reduced (bool) If True, only return a limited number of columns.
+#' If False, return a full set of columns.
+#'
+#' @return A tibble dataframe where each row is an epimutation.
+#'
+#' @examples
+format_bumps <- function(bumps, set, sample, reduced){
+  df_out <- tibble::as_tibble(bumps)
+  df_out$sample <- sample
+  df_out$cpg_ids <- mapply(
+    function(rown, i_st, i_end){paste(rown[i_st:i_end], collapse=",")},
+    df_out$indexStart,
+    df_out$indexEnd,
+    MoreArgs = list(rown = rownames(set))
+  )
+  if(reduced){
+    df_out <- df_out[,c("sample", "chr", "start", "end", "cpg_ids")]
+  }
+  return(df_out)
 }
