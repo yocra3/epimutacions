@@ -92,7 +92,7 @@ EpiMutations<-function(cases, controls, num.cpgs = 10, pValue.cutoff = 0.01,
     #Find beta value matrix for each bump
     
     #Outlier identification using multiple statistical approach 
-    for(i in 1:nrow(bumps)) {
+    for(i in seq_len(nrow(bumps))) {
       #Find beta value matrix for each bump
       beta.values <- get_betas(bumps[i, ], set)
       #manova
