@@ -1,4 +1,13 @@
-
+#' MEthod implementing Barbosa et. al. 2019 to detect epimutations
+#' 
+#' @param cases GenomicRatioSet with cases (probands) methylation data
+#' @param controls GenomicRatioSet with controls methylation data to be used as
+#' reference.
+#' @param window integer defining the window size where N CpGs have to be to 
+#' define a region (default: 1000)
+#' @param N integerdefining the number of CpGs to closer than window bases to
+#' define a region (default: 3)
+#' @export
 epi_detection_barbosa <- function(cases, controls, window = 1000) {
 	# Compute requires statistics from controls for each probe:
 	#    * min reference beta value
@@ -35,12 +44,7 @@ epi_detection_barbosa <- function(cases, controls, window = 1000) {
 	rm(bctr_min, bctr_max, bctr_mean, bctr_pmin, bctr_pmax)
 	rm(bcas)
 	
-	#flad_red <- flag_result[flag_result$flag_qm_sup | flag_result$flag_qm_inf, ]
-	#flad_red$cum_inf <- cumsum(flad_red$flag_qm_inf)
-	#flad_red$cum_sup <- cumsum(flad_red$flag_qm_sup)
-	flag_sup <- flag_result[flag_result$flag_qm_sup, ]
-	flag_inf <- flag_result[flag_result$flag_qm_inf, ]
-	
+	# Function used to detect regions of N CpGs closer than window size
 	get_regions <- function(flag_df, N = 3) {
 		regions <- flag_df[1, ]
 		regions$region <- 1
@@ -79,10 +83,14 @@ epi_detection_barbosa <- function(cases, controls, window = 1000) {
 		return(regions)
 	}
 	
+	flag_sup <- flag_result[flag_result$flag_qm_sup, ]
+	flag_inf <- flag_result[flag_result$flag_qm_inf, ]
+	
 	reg_sup <- get_regions(flag_sup)
 	reg_inf <- get_regions(flag_inf)
+	
 	reg_sup$direction <- "+"
-	reg_inf$direction <- "+"
+	reg_inf$direction <- "-"
 	
 	return(rbind(reg_inf, reg_sup))
 }
