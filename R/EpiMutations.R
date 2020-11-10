@@ -2,9 +2,11 @@
 EpiMutations <- function(
   cases,
   controls,
+  sample_id,
+  cases_as_controls = T,
+  args.bumphunter = list(cutoff=0.1),
   num.cpgs = 10,
   pValue.cutoff = 0.01,
-  cutoff = 0.1,
   outlier.score = 0.5,
   nsamp = "deterministic",
   method = c("manova", "mlm", "iso.forest", "Mahdist.MCD")
@@ -14,16 +16,17 @@ EpiMutations <- function(
 
   set <- set_concat(cases, controls)
   
-  model <- make_bumphunter_model(set, sample_id=colnames(cases))
-  bumps <- run_bumphunter(set, model, cutoff)
+  design <- make_bumphunter_model(set, sample_id)
+  bumps <- do.call(run_bumphunter,
+                   c(list(set=set, design=design), args.bumphunter))
   
   check_bumps(bumps)
   bumps <- filter_bumps(bumps, min_cpgs_per_bump=num.cpgs)
   
-  bumps <- compute_bump_outlier_scores(set, bumps, method, colnames(cases), model, nsamp)
+  bumps <- compute_bump_outlier_scores(set, bumps, method, sample_id, design, nsamp)
   bumps <- select_outlier_bumps(bumps, method, pValue.cutoff, outlier.score)
   
-  return(format_bumps(bumps, colnames(cases)))
+  return(format_bumps(bumps, sample_id))
 }
 
 check_params <- function(cases, controls, method){
@@ -69,18 +72,32 @@ make_bumphunter_model <- function(set, sample_id){
   return(stats::model.matrix(~samp, Biobase::pData(set)))
 }
 
-run_bumphunter <- function(set, model, cutoff){
+#' Run the Bumphunter algorithm.
+#'
+#' See bumphunter doc for details \link[bumphunter]{bumphunter}
+#'
+#' @keywords internal
+#' 
+#' @param set A GenomicRatioSet or ExpressionSet
+#' @param design Design matrix with rows representing samples and columns 
+#' representing covariates. Regression is applied to each row of set.
+#' @param ... Extra arguments to pass to \link[bumphunter]{bumphunter} 
+#'
+#' @return The object returned by \link[bumphunter]{bumphunter}
+#'
+#' @examples
+run_bumphunter <- function(set, design, ...){
   if(class(set) == "GenomicRatioSet") {
-    return(bumphunter::bumphunter(set, model, cutoff = cutoff)$table)
+    return(bumphunter::bumphunter(set, design, ...)$table)
   } else if (class(set) == "ExpressionSet") {
     return(
       bumphunter::bumphunter(
         object = Biobase::exprs(set),
-        design = model,
+        design = design,
         pos = Biobase::fData(set)$RANGE_START,
         chr = Biobase::fData(set)$CHR,
-        cutoff = cutoff)
-      $table
+        ...
+      )$table
     )
   }
 }
