@@ -34,6 +34,10 @@
 #' value of a probe in the reference to be considered outlier
 #' @export
 epi_detection_barbosa <- function(cases, controls, window_sz = 1000, N = 3, offset_mean = 0.15, offset_abs = 0.1) {
+	if(ncol(cases) != 1) {
+		stop("Epimutation detection with berbosa approach can only works with a singe proband")
+	}
+	
 	# Compute requires statistics from controls for each probe:
 	#    * min reference beta value
 	#    * max reference beta value
@@ -72,63 +76,42 @@ epi_detection_barbosa <- function(cases, controls, window_sz = 1000, N = 3, offs
 	# Function used to detect regions of N CpGs closer than window size
 	get_regions <- function(flag_df, window_sz = 1000, N = 3, pref = "R") {
 		
+		# Get the position of the previous and next probe for each probe in the
+		# data.frame. The first and last position get its own position minus/plus
+		# the window size to be sure to include them in the resulting data.frame
 		flag_df$pos_next <- c(flag_df$pos[seq(2, nrow(flag_df))], flag_df$pos[nrow(flag_df)] + window_sz)
 		flag_df$pos_prev <- c(flag_df$pos[1] - window_sz, flag_df$pos[seq(1, nrow(flag_df) - 1)])
 		
+		# We add two columns indicating if a probe is within the window size
+		# range with its previous and with its next probe
 		flag_df$in_prev <- flag_df$pos - flag_df$pos_prev <= window_sz
 		flag_df$in_next <- flag_df$pos_next - flag_df$pos <= window_sz
 		
+		# We drop all the probes that do not have a previous nor a next
+		# probe within the range of interest
 		flag_df <- flag_df[flag_df$in_prev | flag_df$in_next, ]
 		
+		# Using the cumsum function and by negating the content of the "in_next"
+		# column we can define the regions of CpGs within the range since they
+		# will be tagged with the same number
 		flag_df$cum <- cumsum(!flag_df$in_next)
 		
+		# Computing the frequency of each "number" asign to the region we can 
+		# know how may probes are in it. We can use this frequency to filter out
+		# those regions with less probes than given by N.
+		# We also give to the regions a proper name.
 		fr <- data.frame(table(flag_df$cum), stringsAsFactors = FALSE)
 		fr <- as.numeric(fr$Var1[fr$Freq > N])
 		fr <- data.frame(current = fr, new = paste0(pref, seq_len(length(fr))))
 		flag_df <- flag_df[flag_df$cum %in% fr$current, ]
 		rownames(fr) <- paste("O", fr$current)
 		flag_df$region <- fr[paste("O", flag_df$cum), "new"]
+		
+		# We drop the columns with the flags used for the outlier and region
+		# detection
 		flag_df <- flag_df[ , c("chr", "pos", "probands", "region")]
 		
 		return(flag_df)
-		
-		# regions <- flag_df[1, ]
-		# regions$region <- 1
-		# r_cnt <- 1
-		# r_ii <- 1
-		# for(ii in seq(2, nrow(flag_df))) {
-		# 	# if the new CpG is from another chromosome, we create a new region (r_cnt),
-		# 	# we add the new CpG, and we increse the row counter (r_ii)
-		# 	if(regions$chr[r_ii] != flag_df$chr[ii]) {
-		# 		r_cnt <- r_cnt + 1
-		# 		regions <- rbind(regions, data.frame(flag_df[ii, ], region = r_cnt))
-		# 		r_ii <- r_ii + 1
-		# 	} else {
-		# 		# if the new CpG is in the window taking into account the last include
-		# 		# GpG, we include it and increase the row-counter (r_ii)
-		# 		if(regions$pos[r_ii] + window >= flag_df$pos[ii]) {
-		# 			regions <- rbind(regions, data.frame(flag_df[ii, ], region = r_cnt))
-		# 			r_ii <- r_ii + 1
-		# 		}
-		# 		# if the new CpG is out the window taking into account the last include
-		# 		# GpG, we include the region counter (r_cnt), and increase the 
-		# 		# row-counter (r_ii)
-		# 		if(regions$pos[r_ii] + window < flag_df$pos[ii]) {
-		# 			r_cnt <- r_cnt + 1
-		# 			regions <- rbind(regions, data.frame(flag_df[ii, ], region = r_cnt))
-		# 			r_ii <- r_ii + 1
-		# 		}
-		# 	}
-		# }
-		# 
-		# # We remove all the regions that does not have N CpGs in them
-		# fr <- data.frame(table(regions$region), stringsAsFactors = FALSE)
-		# fr <- as.numeric(fr$Var1[fr$Freq > N])
-		# regions <- regions[regions$region %in% fr, ]
-		# 
-		# # We rename the regions by adding "R"
-		# regions$region <- paste0("R", regions$region)
-		# return(regions)
 	}
 	
 	# We select the CpGs according to the direction of the outlier
@@ -136,8 +119,8 @@ epi_detection_barbosa <- function(cases, controls, window_sz = 1000, N = 3, offs
 	flag_inf <- flag_result[flag_result$flag_qm_inf, ]
 	
 	# We identify the regions taking into account the direction
-	reg_sup <- get_regions(flag_sup)
-	reg_inf <- get_regions(flag_inf)
+	reg_sup <- get_regions(flag_sup, pref = "Rs")
+	reg_inf <- get_regions(flag_inf, pref = "Ri")
 	
 	# We add a column indicating the direction of the regions/outliers
 	reg_sup$direction <- "+"
