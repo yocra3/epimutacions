@@ -52,7 +52,8 @@ epimutations <- function(
   reduced_output = T
 ) {
   
-  check_params(cases, controls, method, cases_as_controls)
+
+  check_params(cases, controls, method, cases_as_controls, sample_ids)
 
   set <- set_concat(cases, controls)
   
@@ -101,7 +102,9 @@ epimutations_per_sample <- function(
   return(epi)
 }
 
-check_params <- function(cases, controls, method, cases_as_controls){
+
+check_params <- function(cases, controls, method, cases_as_controls, sample_ids){
+
   if(is.null(cases)) {
     stop("'Diseases' parameter must be introduced")
   }
@@ -121,6 +124,10 @@ check_params <- function(cases, controls, method, cases_as_controls){
   selected_method <- charmatch(method, c("manova", "mlm", "iso.forest", "Mahdist.MCD"))
   if(is.na(selected_method)) {
     stop("The selected method must be 'manova', 'mlm','iso.forest','Mahdist.MCD'")  
+  }
+  sample_ids_in_cases <- sample_ids %in% colnames(cases) 
+  if(isFALSE(sample_ids_in_cases)){
+    stop("'sample_ids' must be in 'cases' datasets")  
   }
 }
 
@@ -210,7 +217,7 @@ compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp
       if(ncol(beta.values) > nrow(beta.values) - 2 ) {
         stop("Not enough samples to run MANOVA")
       }
-      bumps$outlier_score[i] <- EpiMANOVA(beta.values, model)
+      bumps$outlier_score[i] <- epi_manova(beta.values, model, sample)
     } else if(method == "mlm") {
       bumps$outlier_score[i] <- epiMLM(beta.values, model)  
     } else if(method == "iso.forest") {
@@ -225,11 +232,11 @@ compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp
 
 select_outlier_bumps <- function(bumps, method, pValue.cutoff, outlier.score){
 
-  if(method == "manova" || method == "mlm"){
+  if( method == "mlm"){
     outliers <- subset(bumps, outlier_score < pValue.cutoff)
   } else if(method == "iso.forest"){
     outliers <- subset(bumps, outlier_score > outlier.score)
-  } else if(method == "Mahdist.MCD"){
+  } else if(method == "manova" ||  method == "Mahdist.MCD"){
     outliers <- subset(bumps, outlier_score == TRUE)
   }
   
