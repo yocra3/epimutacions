@@ -161,7 +161,7 @@ filter_bumps <- function(bumps, min_cpgs_per_bump){
 }
 
 compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp){
-  
+  bumps$outlier_score <- character(nrow(bumps))
   for(i in seq_len(nrow(bumps))) {
     beta.values <- get_betas(bumps[i, ], set)
     if(method == "manova") {
@@ -210,9 +210,10 @@ select_outlier_bumps <- function(bumps, method, pValue.cutoff, outlier.score){
 #' @examples
 format_bumps <- function(bumps, set, sample, method, reduced){
   df_out <- tibble::as_tibble(bumps)
+  df_out$sample <- df_out$outlier_method <- character(nrow(df_out))
   if(nrow(bumps) > 0){
     df_out$sample <- sample
-    df_out[["outlier_method"]] <- method
+    df_out$outlier_method <- method
   }
   df_out$cpg_ids <- mapply(
     function(rown, i_st, i_end){paste(rown[i_st:i_end], collapse=",")},
@@ -221,8 +222,9 @@ format_bumps <- function(bumps, set, sample, method, reduced){
     MoreArgs = list(rown = rownames(set))
   )
   if(reduced){
-    df_out <- df_out[, c("sample", "chr", "start", "end", "cpg_ids",
-                         "outlier_method", "outlier_score")]
+    reduced_col <- c("sample", "chr", "start", "end", "cpg_ids",
+                     "outlier_method", "outlier_score")
+    df_out <- df_out[, reduced_col]
   }
   return(df_out)
 }
