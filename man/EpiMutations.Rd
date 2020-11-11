@@ -14,7 +14,8 @@ EpiMutations(
   pValue.cutoff = 0.01,
   outlier.score = 0.5,
   nsamp = "deterministic",
-  method = c("manova", "mlm", "iso.forest", "Mahdist.MCD")
+  method = c("manova", "mlm", "iso.forest", "Mahdist.MCD"),
+  reduced_output = T
 )
 }
 \arguments{
@@ -24,6 +25,7 @@ EpiMutations(
 
 \item{sample_ids}{(string) The column names in cases to compute epimutations for.
 If missing, computes for all samples in cases.}
+
 
 \item{cases_as_controls}{(bool) If True, all remaining cases are added in controls.
 If False, they are ignored.}
@@ -44,6 +46,19 @@ If False, they are ignored.}
 }
 \value{
 A tibble of epimutation regions for sample_id.
+
+\describe{
+\item{sample}{(string) Sample_id in colnames(cases)}
+\item{chr}{(string) Chromosome}
+\item{start}{(integer) Start position on chromosome}
+\item{end}{(integer) End position on chromosome}
+\item{cpg_ids}{(string) Comma-separated CpG_ids in rownames(cases) spanned by region}
+\item{outlier_method}{(string) The outlier scoring method. Either
+"manova", "mlm", "iso.forest" or "Mahdist.MCD".}
+\item{outlier_score}{(numeric) The outlier score. A p-value for methods
+"manova" or "mlm". A score produced by \code{\link[isotree]{isolation.forest}}
+for method "iso.forest". A boolean for method "Mahdist.MCD". }
+}
 }
 \description{
 Return epimutations as per Aref-Eshghi et al, 2020.
