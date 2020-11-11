@@ -12,7 +12,7 @@
 #' @export
 annotate_CpG <- function(data, db, epi_col='CpG_ids', gene_col='GencodeBasicV12_NAME', feat_col='Regulatory_Feature_Group', relat_col='Relation_to_Island'){
 	message('Annotating:')
-	anno <- getAnnotation(IlluminaHumanMethylationEPICanno.ilm10b2.hg19)
+	anno <- getAnnotation(db)
 	epids_list <- data[[epi_col]]
 	message(paste('-', gene_col))
 	annotated_genes <- lapply(epids_list, function(x){
