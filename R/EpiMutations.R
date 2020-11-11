@@ -15,6 +15,18 @@
 #' "manova", "mlm", "iso.forest", "Mahdist.MCD".
 #'
 #' @return A tibble of epimutation regions for sample_id.
+#' \describe{
+#' \item{sample}{(string) Sample_id in colnames(cases)}
+#' \item{chr}{(string) Chromosome}
+#' \item{start}{(integer) Start position on chromosome}
+#' \item{end}{(integer) End position on chromosome}
+#' \item{cpg_ids}{(string) Comma-separated CpG_ids in rownames(cases) spanned by region}
+#' \item{outlier_method}{(string) The outlier scoring method. Either
+#' "manova", "mlm", "iso.forest" or "Mahdist.MCD".}
+#' \item{outlier_score}{(numeric) The outlier score. A p-value for methods 
+#' "manova" or "mlm". A score produced by \code{\link[isotree]{isolation.forest}} 
+#' for method "iso.forest". A boolean for method "Mahdist.MCD". }
+#' }
 #' @export
 #'
 #' @examples
@@ -28,7 +40,8 @@ EpiMutations <- function(
   pValue.cutoff = 0.01,
   outlier.score = 0.5,
   nsamp = "deterministic",
-  method = c("manova", "mlm", "iso.forest", "Mahdist.MCD")
+  method = c("manova", "mlm", "iso.forest", "Mahdist.MCD"),
+  reduced_output = T
 ) {
   
   check_params(cases, controls, method)
@@ -46,7 +59,7 @@ EpiMutations <- function(
   bumps <- compute_bump_outlier_scores(set, bumps, method, sample_id, design, nsamp)
   bumps <- select_outlier_bumps(bumps, method, pValue.cutoff, outlier.score)
   
-  return(format_bumps(bumps, sample_id))
+  return(format_bumps(bumps, set, sample_id, method, reduced_output))
 }
 
 check_params <- function(cases, controls, method){
@@ -148,47 +161,70 @@ filter_bumps <- function(bumps, min_cpgs_per_bump){
 }
 
 compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp){
-  
+  bumps$outlier_score <- character(nrow(bumps))
   for(i in seq_len(nrow(bumps))) {
     beta.values <- get_betas(bumps[i, ], set)
     if(method == "manova") {
       if(ncol(beta.values) > nrow(beta.values) - 2 ) {
         stop("Not enough samples to run MANOVA")
       }
-      bumps$manova[i]<-EpiMANOVA(beta.values, model)
-    }
-    if(method == "mlm") {
-      bumps$mlm[i]<-epiMLM(beta.values, model)  
-    }
-    if(method == "iso.forest") {
-      bumps$iso[i]<-epiIsolationForest(beta.values, sample)
-    }
-    if(method == "Mahdist.MCD") {
-      bumps$MahMCD[i]<-epiMahdist.MCD(beta.values, nsamp, sample)
+      bumps$outlier_score[i] <- EpiMANOVA(beta.values, model)
+    } else if(method == "mlm") {
+      bumps$outlier_score[i] <- epiMLM(beta.values, model)  
+    } else if(method == "iso.forest") {
+      bumps$outlier_score[i] <- epiIsolationForest(beta.values, sample)
+    } else if(method == "Mahdist.MCD") {
+      bumps$outlier_score[i] <- epiMahdist.MCD(beta.values, nsamp, sample)
     }
   }
+  
   return(bumps)
 }
 
 select_outlier_bumps <- function(bumps, method, pValue.cutoff, outlier.score){
 
-  if(method == "manova"){
-    outliers <- subset(bumps, manova < pValue.cutoff)
-  }
-  if(method == "mlm"){
-    outliers <- subset(bumps, mlm < pValue.cutoff)
-  }
-  if(method == "iso.forest"){
-    outliers <- subset(bumps, iso > outlier.score)
-  }
-  if(method == "Mahdist.MCD"){
-    outliers <- subset(bumps, MahMCD == TRUE)
+  if(method == "manova" || method == "mlm"){
+    outliers <- subset(bumps, outlier_score < pValue.cutoff)
+  } else if(method == "iso.forest"){
+    outliers <- subset(bumps, outlier_score > outlier.score)
+  } else if(method == "Mahdist.MCD"){
+    outliers <- subset(bumps, outlier_score == TRUE)
   }
   
   return(outliers)
 }
 
-format_bumps <- function(bumps, sample){
-  bumps$sample <- sample
-  return(tibble::as_tibble(bumps))
+#' Convert bumps object to a tibble with additional formatting.
+#'
+#' @keywords internal
+#'
+#' @param bumps (bumps) Bump object returned by \link[bumphunter]{bumphunter}.
+#' @param set (GenomicRatioSet, ExpressionSet) The dataset on which the bumps
+#' were computed.
+#' @param sample (string) The sample name for all the bumps.
+#' @param reduced (bool) If True, only return a limited number of columns.
+#' If False, return a full set of columns.
+#'
+#' @return A tibble dataframe where each row is an epimutation.
+#'
+#' @examples
+format_bumps <- function(bumps, set, sample, method, reduced){
+  df_out <- tibble::as_tibble(bumps)
+  df_out$sample <- df_out$outlier_method <- character(nrow(df_out))
+  if(nrow(bumps) > 0){
+    df_out$sample <- sample
+    df_out$outlier_method <- method
+  }
+  df_out$cpg_ids <- mapply(
+    function(rown, i_st, i_end){paste(rown[i_st:i_end], collapse=",")},
+    df_out$indexStart,
+    df_out$indexEnd,
+    MoreArgs = list(rown = rownames(set))
+  )
+  if(reduced){
+    reduced_col <- c("sample", "chr", "start", "end", "cpg_ids",
+                     "outlier_method", "outlier_score")
+    df_out <- df_out[, reduced_col]
+  }
+  return(df_out)
 }
