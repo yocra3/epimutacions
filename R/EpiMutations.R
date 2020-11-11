@@ -2,7 +2,8 @@
 #'
 #' @param cases (GenomicRatioSet, ExpressionSet) Case dataset.
 #' @param controls (GenomicRatioSet, ExpressionSet) Control dataset.
-#' @param sample_ids (string) The column names in cases to compute epimutations for.
+#' @param sample_ids (character vector) The column names in cases to compute 
+#' epimutations for.
 #' If missing, computes for all samples in cases.
 #' @param cases_as_controls (bool) If True, all remaining cases are added in controls.
 #' If False, they are ignored.
@@ -31,7 +32,7 @@
 #' @export
 #'
 #' @examples
-EpiMutations <- function(
+epimutations <- function(
   cases,
   controls,
   sample_ids,
@@ -57,7 +58,7 @@ EpiMutations <- function(
     function(sample_id) {
       epimutations_per_sample(
         set, sample_id, cases_as_controls, args.bumphunter, num.cpgs,
-        pValue.cutoff, outlier.score, nsamp, method
+        pValue.cutoff, outlier.score, nsamp, method, reduced_output
       )
     }
   )
@@ -75,7 +76,8 @@ epimutations_per_sample <- function(
   pValue.cutoff = 0.01,
   outlier.score = 0.5,
   nsamp = "deterministic",
-  method = c("manova", "mlm", "iso.forest", "Mahdist.MCD")
+  method = c("manova", "mlm", "iso.forest", "Mahdist.MCD"),
+  reduced_output = T
 ){
   set <- filter_set(set, sample_id, cases_as_controls)
   
@@ -88,7 +90,7 @@ epimutations_per_sample <- function(
   
   bumps <- compute_bump_outlier_scores(set, bumps, method, sample_id, design, nsamp)
   bumps <- select_outlier_bumps(bumps, method, pValue.cutoff, outlier.score)
-  epi <- format_bumps(bumps, sample_id)
+  epi <- format_bumps(bumps, set, sample_id, method, reduced_output)
   
   return(epi)
 }
