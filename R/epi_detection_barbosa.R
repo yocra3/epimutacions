@@ -75,43 +75,77 @@ epi_detection_barbosa <- function(cases, controls, window_sz = 1000, N = 3, offs
 	
 	# Function used to detect regions of N CpGs closer than window size
 	get_regions <- function(flag_df, window_sz = 1000, N = 3, pref = "R") {
+		# Order the input first by chromosome and then by position
+		flag_df <- flag_df[with(flag_df, order(chr, pos)), ]
 		
-		# Get the position of the previous and next probe for each probe in the
-		# data.frame. The first and last position get its own position minus/plus
-		# the window size to be sure to include them in the resulting data.frame
-		flag_df$pos_next <- c(flag_df$pos[seq(2, nrow(flag_df))], flag_df$pos[nrow(flag_df)] + window_sz)
-		flag_df$pos_prev <- c(flag_df$pos[1] - window_sz, flag_df$pos[seq(1, nrow(flag_df) - 1)])
+		x <- do.call(rbind, lapply(unique(flag_df$chr), function(chr) {
+			# Subset by chromosome
+			red_df <- flag_df[flag_df$chr == chr, ]
+			if(nrow(red_df) < N) {
+				return(data.frame(chr=NA, pos=NA, probands=NA, region=NA))
+			}
+			
+			# Get the position of the previous and next probe for each probe in the
+			# data.frame. The first and last position get its own position minus/plus
+			# the window size to be sure to include them in the resulting data.frame.
+			red_df$pos_next <- c(red_df$pos[seq(2, nrow(red_df))], red_df$pos[nrow(red_df)] + window_sz + 1)
+			red_df$pos_prev <- c(red_df$pos[1] - window_sz - 1, red_df$pos[seq(1, nrow(red_df) - 1)])
+			
+			# We add two columns indicating if a probe is within the window size
+			# range with its previous and with its next probe
+			red_df$in_prev <- red_df$pos - red_df$pos_prev <= window_sz
+			red_df$in_next <- red_df$pos_next - red_df$pos <= window_sz
+			
+			# We drop all the probes that do not have a previous nor a next
+			# probe within the range of interest
+			red_df <- red_df[red_df$in_prev | red_df$in_next, ]
+			if(nrow(red_df) < N) {
+				return(data.frame(chr=NA, pos=NA, probands=NA, region=NA))
+			}
+			
+			# Using the cumsum function and by negating the content of the "in_next"
+			# column we can define the regions of CpGs within the range since they
+			# will be tagged with the same number
+			red_df$cum <- cumsum(!red_df$in_next)
+			
+			# correct the base position of the change in the region
+			red_df$cum2 <- red_df$cum
+			for(ii in seq(2, nrow(red_df))) {
+				if(red_df$cum[ii] != red_df$cum[ii - 1] & red_df$in_prev[ii] & !red_df$in_next[ii]) {
+					red_df$cum2[ii] <- red_df$cum[ii] - 1
+				}
+			}
+			
+			# Computing the frequency of each "number" assign to the region we can 
+			# know how may probes are in it. We can use this frequency to filter out
+			# those regions with less probes than given by N.
+			# We also give to the regions a proper name.
+			fr <- data.frame(table(red_df$cum2), stringsAsFactors = FALSE)
+			fr <- as.numeric(as.character(fr$Var1[fr$Freq >= N]))
+			if(length(fr) > 0) {
+				fr <- data.frame(current = fr, new = paste0(pref, "_", chr, "_", seq_len(length(fr))))
+				red_df <- red_df[red_df$cum2 %in% fr$current, ]
+				rownames(fr) <- paste0("O", fr$current)
+				red_df$region <- fr[paste0("O", red_df$cum2), "new"]
+				
+				
+				# Since the first and last probe in a chromosome will have TRUE in
+				# prev or next distance we need to be sure to drop them if they
+				# are not in the window
+				red_df$dist_next <- red_df$pos_next - red_df$pos
+				red_df$dist_next[length(red_df$dist_next)] <- 0
+				red_df <- red_df[red_df$dist_next <= window_sz, ]
+				
+				# We drop the columns with the flags used for the outlier and region
+				# detection
+				red_df <- red_df[ , c("chr", "pos", "probands", "region")]
+				return(red_df)
+			} else {
+				return(data.frame(chr=NA, pos=NA, probands=NA, region=NA))
+			}
+		}))
 		
-		# We add two columns indicating if a probe is within the window size
-		# range with its previous and with its next probe
-		flag_df$in_prev <- flag_df$pos - flag_df$pos_prev <= window_sz
-		flag_df$in_next <- flag_df$pos_next - flag_df$pos <= window_sz
-		
-		# We drop all the probes that do not have a previous nor a next
-		# probe within the range of interest
-		flag_df <- flag_df[flag_df$in_prev | flag_df$in_next, ]
-		
-		# Using the cumsum function and by negating the content of the "in_next"
-		# column we can define the regions of CpGs within the range since they
-		# will be tagged with the same number
-		flag_df$cum <- cumsum(!flag_df$in_next)
-		
-		# Computing the frequency of each "number" assign to the region we can 
-		# know how may probes are in it. We can use this frequency to filter out
-		# those regions with less probes than given by N.
-		# We also give to the regions a proper name.
-		fr <- data.frame(table(flag_df$cum), stringsAsFactors = FALSE)
-		fr <- as.numeric(fr$Var1[fr$Freq > N])
-		fr <- data.frame(current = fr, new = paste0(pref, seq_len(length(fr))))
-		flag_df <- flag_df[flag_df$cum %in% fr$current, ]
-		rownames(fr) <- paste("O", fr$current)
-		flag_df$outlier_method <- fr[paste("O", flag_df$cum), "new"]
-		
-		# We drop the columns with the flags used for the outlier and region
-		# detection
-		flag_df <- flag_df[ , c("chr", "pos", "probands", "region")]
-		
-		return(flag_df)
+		return(x[!is.na(x$chr), ])
 	}
 	
 	# We select the CpGs according to the direction of the outlier
@@ -128,7 +162,28 @@ epi_detection_barbosa <- function(cases, controls, window_sz = 1000, N = 3, offs
 	reg_inf$outlier_score <- "hypomethylation"
 	reg_inf$CpG_ids <- rownames(reg_inf)
 	
-	return(rbind(reg_inf, reg_sup))
+	collapse_regions <- function(flag_df) {
+		do.call(rbind, lapply(unique(flag_df$region), function(reg) {
+			x <- flag_df[flag_df$region == reg, ]
+			data.frame(
+				chr = x$chr[1],
+				start = min(x$pos),
+				end = max(x$pos),
+				length = max(x$pos) - min(x$pos),
+				N_CpGs = nrow(x),
+				CpG_ids = paste(x$CpG_ids, collapse = "/", sep = ""),
+				outlier_method = "barbosa",
+				outlier_score = x$outlier_score[1]
+			)
+				
+		}))
+	}
+	
+	# We collapse the CpGs in regions and format the output
+	clean_sup <- collapse_regions(reg_sup)
+	clean_inf <- collapse_regions(reg_inf)
+	
+	return(rbind(clean_inf, clean_sup))
 }
 
 
