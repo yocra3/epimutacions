@@ -18,6 +18,6 @@ representing covariates. Regression is applied to each row of set.}
 The object returned by \link[bumphunter]{bumphunter}
 }
 \description{
-See bumphunter doc for details \link[bumphunter]{bumphunter}
+See \link[bumphunter]{bumphunter} doc for details.
 }
 \keyword{internal}

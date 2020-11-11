@@ -38,7 +38,8 @@ If False, they are ignored.}
 
 \item{nsamp}{}
 
-\item{method}{}
+\item{method}{(string) The outlier scoring method. Choose from
+"manova", "mlm", "iso.forest", "Mahdist.MCD".}
 }
 \value{
 A tibble of epimutation regions for sample_id.

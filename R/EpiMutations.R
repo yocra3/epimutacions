@@ -155,7 +155,7 @@ compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp
       if(ncol(beta.values) > nrow(beta.values) - 2 ) {
         stop("Not enough samples to run MANOVA")
       }
-      bumps$manova[i]<-EpiMANOVA(beta.values, model)
+      bumps$manova[i]<-epi_manova(beta.values, model)
     }
     if(method == "mlm") {
       bumps$mlm[i]<-epiMLM(beta.values, model)  
@@ -173,7 +173,7 @@ compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp
 select_outlier_bumps <- function(bumps, method, pValue.cutoff, outlier.score){
 
   if(method == "manova"){
-    outliers <- subset(bumps, manova < pValue.cutoff)
+    outliers <- subset(bumps, manova > 40)
   }
   if(method == "mlm"){
     outliers <- subset(bumps, mlm < pValue.cutoff)
