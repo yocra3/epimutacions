@@ -78,7 +78,7 @@ epimutations_per_sample <- function(
   sample_id,
   cases_as_controls = T,
   args.bumphunter = list(cutoff=0.1),
-  num.cpgs = 10,
+  num.cpgs = 3,
   pValue.cutoff = 0.01,
   outlier.score = 0.5,
   nsamp = "deterministic",
