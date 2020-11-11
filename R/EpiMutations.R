@@ -52,7 +52,6 @@ epimutations <- function(
   reduced_output = T
 ) {
   
-
   check_params(cases, controls, method, cases_as_controls, sample_ids)
 
   set <- set_concat(cases, controls)
@@ -125,7 +124,7 @@ check_params <- function(cases, controls, method, cases_as_controls, sample_ids)
   if(is.na(selected_method)) {
     stop("The selected method must be 'manova', 'mlm','iso.forest','Mahdist.MCD'")  
   }
-  if(!missing(sample_ids) && !sample_ids %in% colnames(cases)){
+  if(!missing(sample_ids) && any(!sample_ids %in% colnames(cases))){
     stop("'sample_ids' must be in 'cases' datasets")  
   }
 }
