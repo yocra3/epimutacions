@@ -96,7 +96,7 @@ epi_detection_barbosa <- function(cases, controls, window_sz = 1000, N = 3, offs
 		# will be tagged with the same number
 		flag_df$cum <- cumsum(!flag_df$in_next)
 		
-		# Computing the frequency of each "number" asign to the region we can 
+		# Computing the frequency of each "number" assign to the region we can 
 		# know how may probes are in it. We can use this frequency to filter out
 		# those regions with less probes than given by N.
 		# We also give to the regions a proper name.
@@ -105,7 +105,7 @@ epi_detection_barbosa <- function(cases, controls, window_sz = 1000, N = 3, offs
 		fr <- data.frame(current = fr, new = paste0(pref, seq_len(length(fr))))
 		flag_df <- flag_df[flag_df$cum %in% fr$current, ]
 		rownames(fr) <- paste("O", fr$current)
-		flag_df$region <- fr[paste("O", flag_df$cum), "new"]
+		flag_df$outlier_method <- fr[paste("O", flag_df$cum), "new"]
 		
 		# We drop the columns with the flags used for the outlier and region
 		# detection
@@ -123,8 +123,10 @@ epi_detection_barbosa <- function(cases, controls, window_sz = 1000, N = 3, offs
 	reg_inf <- get_regions(flag_inf, pref = "Ri")
 	
 	# We add a column indicating the direction of the regions/outliers
-	reg_sup$direction <- "+"
-	reg_inf$direction <- "-"
+	reg_sup$outlier_score <- "hypermethylation"
+	reg_sup$CpG_ids <- rownames(reg_sup)
+	reg_inf$outlier_score <- "hypomethylation"
+	reg_inf$CpG_ids <- rownames(reg_inf)
 	
 	return(rbind(reg_inf, reg_sup))
 }
