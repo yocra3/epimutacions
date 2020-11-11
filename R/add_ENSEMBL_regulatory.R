@@ -3,6 +3,18 @@
 #' @param epimutations Result from `EpiMutations`
 #' @param build Build used to define epimutations coordinates. By default, it is 37,
 #' corresponding to Illumina annotation.
+#' 
+#' @return Object of `epimutations` with some additional variables describing regulatory
+#' elements from ENSEMBL. Note that a single epimutation might overlap with more than one
+#' regulatory region. In that case, the different regulatory regions are separated by `///`.
+#' \itemize{
+#'  \item{ensembl_reg_id}{Region identifier from ENSEMBL}
+#'  \item{ensembl_reg_coordinates}{Coordinates for the ENSEMBL regulatory regions}
+#'  \item{ensembl_reg_type}{Type of regulatory region}
+#'  \item{ensembl_reg_tissues}{Activity of the regulatory region per tissue. The different
+#'  activation states are separated by `/`}
+#' }
+#'
 add_ENSEMBL_regulatory <- function(epimutations, build = "37"){
 	
 	## Create connection to ENSEMBL 
@@ -13,13 +25,24 @@ add_ENSEMBL_regulatory <- function(epimutations, build = "37"){
 	reg_res <- lapply(seq_len(nrow(epimutations)), function(i) {
 		get_ENSEMBL_data(epimutations[i, "chromosome"], 
 						 epimutations[i, "start"],
-						 epimutations[i, "end"], mart = mart)
+						 epimutations[i, "end"], mart = ensembl)
 	})
 	reg_res_df <- Reduce(rbind, reg_res)
 	cbind(epimutations, reg_res_df)
 
 }
 
+#' Get ENSEMBL regulatory features overlapping a genomic region
+#' 
+#' This function queries for ENSEMBL regulatory features and collapse them to return
+#' a single record.
+#' 
+#' @param chromosome Chromosome of the region
+#' @param start Start of the region
+#' @param end End of the region
+#' @param mart `Mart` object to perform the ENSEMBL query
+#' @return `data.frame` of one row with the ENSEMBL regulatory regions overlapping
+#' the genomic coordinate
 get_ENSEMBL_data <- function(chromosome, start, end, mart){
 	bm <- biomaRt::getBM(attributes = c("activity", "regulatory_stable_id", 
 								  "chromosome_name", "chromosome_start",
@@ -27,13 +50,18 @@ get_ENSEMBL_data <- function(chromosome, start, end, mart){
 								  "epigenome_name"), 
 				   filters = c('chromosome_name','start','end'),
 				   values = list(chromosome, start, end),
-				   mart = ensembl)
+				   mart = mart)
 	out_ens <- process_ENSEMBL_results(bm)
 	out_ens
 }
 
+#' Process data from ENSEMBL 
+#' 
 #' Process data from ENSEMBL to combine results from the same regulatory elements in 
-#' a unique record
+#' a unique record.
+#' 
+#' @param ensembl_res Results from `biomaRt::getBM`
+#' @return `data.frame` of one row after collapsing the input ENSEMBL regulatory regions 
 process_ENSEMBL_results <- function(ensembl_res){
 	
 	reg_elements <- unique(ensembl_res$regulatory_stable_id)
@@ -47,6 +75,14 @@ process_ENSEMBL_results <- function(ensembl_res){
 	out
 }
 
+#' Merge records for the same ENSEMBL regulatory element
+#' 
+#' This function collapses the activity status of a given an ENSEMBL regulatory 
+#' element in different tissues. Notice that tissues identified as inactive will
+#' not be reported.
+#' 
+#' @param tab Results from `biomaRt::getBM` for the same regulatory element
+#' @return `data.frame` of one row after collapsing the 
 merge_records <- function(tab){
 	
 	vec <- tab[1, , drop = FALSE]
