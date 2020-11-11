@@ -125,8 +125,7 @@ check_params <- function(cases, controls, method, cases_as_controls, sample_ids)
   if(is.na(selected_method)) {
     stop("The selected method must be 'manova', 'mlm','iso.forest','Mahdist.MCD'")  
   }
-  sample_ids_in_cases <- sample_ids %in% colnames(cases) 
-  if(isFALSE(sample_ids_in_cases)){
+  if(!missing(sample_ids) && !sample_ids %in% colnames(cases)){
     stop("'sample_ids' must be in 'cases' datasets")  
   }
 }
