@@ -70,6 +70,12 @@ check_params <- function(cases, controls, method){
   if(is.na(selected_method)) {
     stop("The selected method must be 'manova', 'mlm','iso.forest','Mahdist.MCD'")  
   }
+  
+  sample_id_selection<-sample_id %in% colnames(cases)
+  if(isFALSE(sample_id_selection)){
+    stop("'Sample_id' must be in 'cases' dataset") 
+  }
+  
 }
 
 set_concat <- function(cases, controls){
