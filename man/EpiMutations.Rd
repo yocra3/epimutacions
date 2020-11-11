@@ -7,7 +7,7 @@
 EpiMutations(
   cases,
   controls,
-  sample_id,
+  sample_ids,
   cases_as_controls = T,
   args.bumphunter = list(cutoff = 0.1),
   num.cpgs = 10,
@@ -23,7 +23,9 @@ EpiMutations(
 
 \item{controls}{(GenomicRatioSet, ExpressionSet) Control dataset.}
 
-\item{sample_id}{(string) The column name in cases to compute epimutations for.}
+\item{sample_ids}{(string) The column names in cases to compute epimutations for.
+If missing, computes for all samples in cases.}
+
 
 \item{cases_as_controls}{(bool) If True, all remaining cases are added in controls.
 If False, they are ignored.}
@@ -44,6 +46,7 @@ If False, they are ignored.}
 }
 \value{
 A tibble of epimutation regions for sample_id.
+
 \describe{
 \item{sample}{(string) Sample_id in colnames(cases)}
 \item{chr}{(string) Chromosome}

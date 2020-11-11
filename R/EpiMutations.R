@@ -2,7 +2,8 @@
 #'
 #' @param cases (GenomicRatioSet, ExpressionSet) Case dataset.
 #' @param controls (GenomicRatioSet, ExpressionSet) Control dataset.
-#' @param sample_id (string) The column name in cases to compute epimutations for.
+#' @param sample_ids (string) The column names in cases to compute epimutations for.
+#' If missing, computes for all samples in cases.
 #' @param cases_as_controls (bool) If True, all remaining cases are added in controls.
 #' If False, they are ignored.
 #' @param args.bumphunter (list) Additional arguments to pass to 
@@ -33,7 +34,7 @@
 EpiMutations <- function(
   cases,
   controls,
-  sample_id,
+  sample_ids,
   cases_as_controls = T,
   args.bumphunter = list(cutoff=0.1),
   num.cpgs = 10,
@@ -47,6 +48,35 @@ EpiMutations <- function(
   check_params(cases, controls, method)
 
   set <- set_concat(cases, controls)
+  
+  if(missing(sample_ids)){
+    sample_ids <- colnames(cases)
+  }
+  epis <- lapply(
+    sample_ids,
+    function(sample_id) {
+      epimutations_per_sample(
+        set, sample_id, cases_as_controls, args.bumphunter, num.cpgs,
+        pValue.cutoff, outlier.score, nsamp, method
+      )
+    }
+  )
+  epis <- do.call(rbind, epis)
+  
+  return(epis)
+}
+
+epimutations_per_sample <- function(
+  set,
+  sample_id,
+  cases_as_controls = T,
+  args.bumphunter = list(cutoff=0.1),
+  num.cpgs = 10,
+  pValue.cutoff = 0.01,
+  outlier.score = 0.5,
+  nsamp = "deterministic",
+  method = c("manova", "mlm", "iso.forest", "Mahdist.MCD")
+){
   set <- filter_set(set, sample_id, cases_as_controls)
   
   design <- make_bumphunter_design(set, sample_id)
@@ -58,8 +88,9 @@ EpiMutations <- function(
   
   bumps <- compute_bump_outlier_scores(set, bumps, method, sample_id, design, nsamp)
   bumps <- select_outlier_bumps(bumps, method, pValue.cutoff, outlier.score)
+  epi <- format_bumps(bumps, sample_id)
   
-  return(format_bumps(bumps, set, sample_id, method, reduced_output))
+  return(epi)
 }
 
 check_params <- function(cases, controls, method){
