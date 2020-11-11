@@ -2,7 +2,8 @@
 #'
 #' @param cases (GenomicRatioSet, ExpressionSet) Case dataset.
 #' @param controls (GenomicRatioSet, ExpressionSet) Control dataset.
-#' @param sample_ids (string) The column names in cases to compute epimutations for.
+#' @param sample_ids (character vector) The column names in cases to compute 
+#' epimutations for.
 #' If missing, computes for all samples in cases.
 #' @param cases_as_controls (bool) If True, all remaining cases are added in controls.
 #' If False, they are ignored.
@@ -31,7 +32,7 @@
 #' @export
 #'
 #' @examples
-EpiMutations <- function(
+epimutations <- function(
   cases,
   controls,
   sample_ids,
