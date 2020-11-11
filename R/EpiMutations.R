@@ -32,6 +32,12 @@
 #' @export
 #'
 #' @examples
+#' data("genomicratioset") # load toy dataset
+#' epi <- epimutations(
+#'   genomicratioset,
+#'   num.cpgs = 2,
+#'   method = "manova"
+#' )
 epimutations <- function(
   cases,
   controls,
@@ -151,7 +157,7 @@ filter_set <- function(set, sample_id, cases_as_controls){
 
 make_bumphunter_design <- function(set, sample_id){
   # model is single sample, no covariates: 0,0,0,0...0,0,1
-  Biobase::pData(set)$samp <- Biobase::pData(set)$sampleID == sample_id
+  Biobase::pData(set)$samp <- colnames(set) == sample_id
   return(stats::model.matrix(~samp, Biobase::pData(set)))
 }
 
