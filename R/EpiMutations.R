@@ -1,7 +1,7 @@
 #' Return epimutations as per Aref-Eshghi et al, 2020.
 #'
 #' @param cases (GenomicRatioSet, ExpressionSet) Case dataset.
-#' @param controls (GenomicRatioSet, ExpressionSet) Control dataset.
+#' @param controls (GenomicRatioSet, ExpressionSet) Control dataset. Optional.
 #' @param sample_ids (character vector) The column names in cases to compute 
 #' epimutations for.
 #' If missing, computes for all samples in cases.
@@ -32,6 +32,12 @@
 #' @export
 #'
 #' @examples
+#' data("genomicratioset") # load toy dataset
+#' epi <- epimutations(
+#'   genomicratioset,
+#'   num.cpgs = 2,
+#'   method = "manova"
+#' )
 epimutations <- function(
   cases,
   controls,
@@ -46,7 +52,7 @@ epimutations <- function(
   reduced_output = T
 ) {
   
-  check_params(cases, controls, method)
+  check_params(cases, controls, method, cases_as_controls)
 
   set <- set_concat(cases, controls)
   
@@ -95,14 +101,14 @@ epimutations_per_sample <- function(
   return(epi)
 }
 
-check_params <- function(cases, controls, method){
+check_params <- function(cases, controls, method, cases_as_controls){
   if(is.null(cases)) {
     stop("'Diseases' parameter must be introduced")
   }
-  # if(ncol(cases) != 1) {
-  #   stop('Number of cases has to be one')
-  # }
-  if(ncol(controls) < 2) {
+  if(missing(controls) && !cases_as_controls){
+    stop("If controls is missing, cases_as_controls must be set to TRUE.")
+  }
+  if(!missing(controls) && ncol(controls) < 2) {
     stop('Number of samples in controls (aka.reference panel) must be greater than 2')
   }
   if(length(method) != 1) {
@@ -120,6 +126,9 @@ check_params <- function(cases, controls, method){
 
 set_concat <- function(cases, controls){
   Biobase::pData(cases)[["origin"]] <- "case"
+  if(missing(controls)){
+    return(cases)
+  }
   Biobase::pData(controls)[["origin"]] <- "control"
   if(class(cases) == "GenomicRatioSet") {
     set <- minfi::combineArrays(
@@ -148,7 +157,7 @@ filter_set <- function(set, sample_id, cases_as_controls){
 
 make_bumphunter_design <- function(set, sample_id){
   # model is single sample, no covariates: 0,0,0,0...0,0,1
-  Biobase::pData(set)$samp <- Biobase::pData(set)$sampleID == sample_id
+  Biobase::pData(set)$samp <- colnames(set) == sample_id
   return(stats::model.matrix(~samp, Biobase::pData(set)))
 }
 
