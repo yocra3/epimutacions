@@ -7,14 +7,13 @@ Authors@R:
 Description: Collection of functions for robust outlier identification in DNA methylation data. 
 License: MIT + file LICENSE
 Imports:
+	SummarizedExperiment,
 	minfi,
-	a4Base,
 	bumphunter,
 	mlm,
 	isotree,
 	robustbase,
-	rrcovHD,
-	tibble
+	rrcovHD
 Suggests: 
     knitr,
     rmarkdown,
