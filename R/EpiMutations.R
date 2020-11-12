@@ -35,7 +35,7 @@
 #' data("genomicratioset") # load toy dataset
 #' epi <- epimutations(
 #'   genomicratioset,
-#'   num.cpgs = 2,
+#'   num.cpgs = 3,
 #'   method = "manova"
 #' )
 epimutations <- function(
@@ -44,8 +44,10 @@ epimutations <- function(
   sample_ids,
   cases_as_controls = T,
   args.bumphunter = list(cutoff=0.1),
-  num.cpgs = 10,
+  num.cpgs = 3,
   pValue.cutoff = 0.01,
+  fStat_lim = c(20, 40),
+  betaDiff_min = 0.2,
   outlier.score = 0.5,
   nsamp = "deterministic",
   method = "manova",
@@ -64,7 +66,7 @@ epimutations <- function(
     function(sample_id) {
       epimutations_per_sample(
         set, sample_id, cases_as_controls, args.bumphunter, num.cpgs,
-        pValue.cutoff, outlier.score, nsamp, method, reduced_output
+        pValue.cutoff, outlier.score, fStat_lim, betaDiff_min, nsamp, method, reduced_output
       )
     }
   )
@@ -81,6 +83,8 @@ epimutations_per_sample <- function(
   num.cpgs = 3,
   pValue.cutoff = 0.01,
   outlier.score = 0.5,
+  fStat_lim = c(20, 40),
+  betaDiff_min = 0.2,
   nsamp = "deterministic",
   method = "manova",
   reduced_output = T
@@ -93,7 +97,7 @@ epimutations_per_sample <- function(
   
   bumps <- filter_bumps(bumps, min_cpgs_per_bump=num.cpgs)
   bumps <- compute_bump_outlier_scores(set, bumps, method, sample_id, design, nsamp)
-  bumps <- select_outlier_bumps(bumps, method, pValue.cutoff, outlier.score)
+  bumps <- select_outlier_bumps(bumps, method, pValue.cutoff, fStat_lim, betaDiff_min, outlier.score)
   
   epi <- format_bumps(bumps, set, sample_id, method, reduced_output)
   
@@ -211,7 +215,8 @@ filter_bumps <- function(bumps, min_cpgs_per_bump){
 }
 
 compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp){
-  bumps$outlier_score <- character(nrow(bumps))
+  bumps$outlier_score <- bumps$outlier_significance <- rep(NA_real_, nrow(bumps))
+  if(method == "manova") bumps$beta_diff <- rep(NA_real_, nrow(bumps))
   for(i in seq_len(nrow(bumps))) {
     beta.values <- get_betas(bumps[i, ], set)
     if(method == "manova") {
@@ -220,7 +225,7 @@ compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp
       }
       bumps$outlier_score[i] <- epi_manova(beta.values, model, sample)
     } else if(method == "mlm") {
-      bumps$outlier_score[i] <- epiMLM(beta.values, model)  
+      bumps$outlier_score[i] <- epiMLM(beta.values, model)
     } else if(method == "iso.forest") {
       bumps$outlier_score[i] <- epiIsolationForest(beta.values, sample)
     } else if(method == "Mahdist.MCD") {
@@ -231,15 +236,22 @@ compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp
   return(bumps)
 }
 
-select_outlier_bumps <- function(bumps, method, pValue.cutoff, outlier.score){
+select_outlier_bumps <- function(bumps, method, pValue.cutoff, fStat_lim, betaDiff_min, outlier.score){
 
-  if( method == "mlm"){
-    outliers <- subset(bumps, outlier_score < pValue.cutoff)
-  } else if(method == "iso.forest"){
-    outliers <- subset(bumps, outlier_score > outlier.score)
-  } else if(method == "manova" ||  method == "Mahdist.MCD"){
-    outliers <- subset(bumps, outlier_score == TRUE)
-  }
+    if(method == "manova"){
+        outliers <- subset(
+            bumps,
+            outlier_score >= fStat_lim[1] && outlier_score <= fStat_lim[2] &&
+                beta_diff >= betaDiff_min &&
+                outlier_significance < pValue.cutoff 
+        )
+    } else if(method == "mlm"){
+        outliers <- subset(bumps, outlier_score < pValue.cutoff)
+    } else if(method == "iso.forest"){
+        outliers <- subset(bumps, outlier_score > outlier.score)
+    } else if(method == "Mahdist.MCD"){
+        outliers <- subset(bumps, outlier_score == TRUE)
+    }
   
   return(outliers)
 }
@@ -265,6 +277,8 @@ format_bumps <- function(bumps, set, sample, method, reduced){
 		df_out$sample <- sample
 		df_out$outlier_method <- method
 	}
+	df_out$length <- df_out$end - df_out$start + 1
+	df_out$n_cpgs <- df_out$indexEnd - df_out$indexStart + 1
 	df_out$cpg_ids <- mapply(
 		function(rown, i_st, i_end){paste(rown[i_st:i_end], collapse=",")},
 		df_out$indexStart,
@@ -272,8 +286,8 @@ format_bumps <- function(bumps, set, sample, method, reduced){
 		MoreArgs = list(rown = rownames(set))
 	)
 	if(reduced){
-		reduced_col <- c("sample", "chr", "start", "end", "cpg_ids",
-		                 "outlier_method", "outlier_score")
+		reduced_col <- c("sample", "chr", "start", "end", "length", "n_cpgs", "cpg_ids",
+		                 "outlier_method", "outlier_score", "outlier_significance")
 		df_out <- df_out[, reduced_col]
 	}
 	return(df_out)
