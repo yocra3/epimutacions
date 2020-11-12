@@ -15,7 +15,9 @@
 #' filter(chr == 'chr15')}
 #' After that, new dataframe was ordered by position in ascending order
 #' and slice with 20 CpG names was taken:
-#' \code{row_n <- rownames(arrange(chr15, chr15$pos)[10000:10019,])}
+#' \code{row_n <- rownames(arrange(chr15, chr15$pos)[1178:1197,])}
+#' The difference in position between 1197 and 1178 element is
+#' 731 bp.
 #' 
 #' The geneticratioset was created via:
 #' \code{geneticratioset <- makeGenomicRatioSetFromMatrix(methylation_matrix, 
