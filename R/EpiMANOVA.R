@@ -21,13 +21,10 @@ epi_manova <-  function(betas, model, sample_id){
   statistics<- mod_summary[1,c("approx F", "Pillai","Pr(>F)")]
   
   # Calculate the beta mean difference
-  keep_case <- which(sample %in% rownames(betas))
-  case <- betas[keep_case,]
-  controls <- betas[-keep_case,]
-  coltrols_mean <- colMeans(controls)
-  beta_mean_difference <- coltrols_mean-case
+  case_row <- which(rownames(betas) %in% sample_id)
+  beta_mean_difference <- abs(mean(colMeans(betas[-case_row,]) - betas[case_row,]))
 
-  output<-c(statistics,beta_mean_difference)
+  output<-c(statistics, beta_mean_difference)
 
   return(output)
 }

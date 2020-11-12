@@ -223,7 +223,10 @@ compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp
       if(ncol(beta.values) > nrow(beta.values) - 2 ) {
         stop("Not enough samples to run MANOVA")
       }
-      bumps$outlier_score[i] <- epi_manova(beta.values, model, sample)
+        stats_manova <- epi_manova(beta.values, model, sample)
+      bumps$outlier_score[i] <- stats_manova[1]
+      bumps$outlier_significance[i] <- stats_manova[3]
+      bumps$beta_diff[i] <- stats_manova[4]
     } else if(method == "mlm") {
       bumps$outlier_score[i] <- epiMLM(beta.values, model)
     } else if(method == "iso.forest") {
