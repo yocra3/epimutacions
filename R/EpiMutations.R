@@ -48,7 +48,7 @@ epimutations <- function(
   pValue.cutoff = 0.01,
   outlier.score = 0.5,
   nsamp = "deterministic",
-  method = c("manova", "mlm", "iso.forest", "Mahdist.MCD"),
+  method = "manova",
   reduced_output = T
 ) {
   
@@ -82,7 +82,7 @@ epimutations_per_sample <- function(
   pValue.cutoff = 0.01,
   outlier.score = 0.5,
   nsamp = "deterministic",
-  method = c("manova", "mlm", "iso.forest", "Mahdist.MCD"),
+  method = "manova",
   reduced_output = T
 ){
   set <- filter_set(set, sample_id, cases_as_controls)
@@ -91,11 +91,10 @@ epimutations_per_sample <- function(
   bumps <- do.call(run_bumphunter,
                    c(list(set=set, design=design), args.bumphunter))
   
-  check_bumps(bumps)
   bumps <- filter_bumps(bumps, min_cpgs_per_bump=num.cpgs)
-  
   bumps <- compute_bump_outlier_scores(set, bumps, method, sample_id, design, nsamp)
   bumps <- select_outlier_bumps(bumps, method, pValue.cutoff, outlier.score)
+  
   epi <- format_bumps(bumps, set, sample_id, method, reduced_output)
   
   return(epi)
@@ -104,28 +103,35 @@ epimutations_per_sample <- function(
 
 check_params <- function(cases, controls, method, cases_as_controls, sample_ids){
 
-  if(is.null(cases)) {
-    stop("'Diseases' parameter must be introduced")
+  if(missing(cases)) {
+    stop("Cases argument is missing.")
   }
   if(missing(controls) && !cases_as_controls){
     stop("If controls is missing, cases_as_controls must be set to TRUE.")
   }
+  if(!class(cases) %in% c("GenomicRatioSet", "ExpressionSet")) {
+    stop("Cases must be of class 'GenomicRatioSet' or 'ExpressionSet'")  
+  }
+  if(missing(controls) && ncol(cases) < 3){
+    stop("If controls is missing, cases must contain at least 3 samples.")
+  }
+  if(!missing(controls) && ncol(cases) == 0){
+    stop("Cases must contain at least 1 sample.")
+  }
+  if(!missing(controls) && !class(controls) %in% c("GenomicRatioSet", "ExpressionSet")) {
+    stop("Controls must be of class 'GenomicRatioSet' or 'ExpressionSet'")  
+  }
   if(!missing(controls) && ncol(controls) < 2) {
-    stop('Number of samples in controls (aka.reference panel) must be greater than 2')
+    stop("Controls must contain at least 2 samples.")
   }
   if(length(method) != 1) {
-    stop('Only one "method" can be chosen at a time')
+    stop("Only one method can be chosen at a time.")
   }
-  type <- charmatch(class(cases), c("GenomicRatioSet", "ExpressionSet"))
-  if(is.na(type)) {
-    stop("The data type must be 'GenomicRatioSet' or 'ExpressionSet'")  
-  }
-  selected_method <- charmatch(method, c("manova", "mlm", "iso.forest", "Mahdist.MCD"))
-  if(is.na(selected_method)) {
-    stop("The selected method must be 'manova', 'mlm','iso.forest','Mahdist.MCD'")  
+  if(!method %in% c("manova", "mlm", "iso.forest", "Mahdist.MCD")) {
+    stop("Method must be 'manova', 'mlm','iso.forest','Mahdist.MCD'")  
   }
   if(!missing(sample_ids) && any(!sample_ids %in% colnames(cases))){
-    stop("'sample_ids' must be in 'cases' datasets")  
+    stop("Sample_ids must match column names in the cases object.")  
   }
 }
 
@@ -177,29 +183,26 @@ make_bumphunter_design <- function(set, sample_id){
 #' representing covariates. Regression is applied to each row of set.
 #' @param ... Extra arguments to pass to \link[bumphunter]{bumphunter} 
 #'
-#' @return The object returned by \link[bumphunter]{bumphunter}
+#' @return The object returned by \link[bumphunter]{bumphunter}, or if no bumps
+#' are found, a mock bumps object with zero rows returned by \code{empty_bumps}.
 #'
 #' @examples
 run_bumphunter <- function(set, design, ...){
-  if(class(set) == "GenomicRatioSet") {
-    return(bumphunter::bumphunter(set, design, ...)$table)
-  } else if (class(set) == "ExpressionSet") {
-    return(
-      bumphunter::bumphunter(
-        object = Biobase::exprs(set),
-        design = design,
-        pos = Biobase::fData(set)$RANGE_START,
-        chr = Biobase::fData(set)$CHR,
-        ...
-      )$table
-    )
-  }
-}
-
-check_bumps <- function(bumps){
-  if(is.na(bumps[1,1])) {
-    stop("Bumhunter has returned NAs.")
-  }
+	if(class(set) == "GenomicRatioSet") {
+		bumps <- bumphunter::bumphunter(set, design, ...)$table
+	} else if (class(set) == "ExpressionSet") {
+		bumps <- bumphunter::bumphunter(
+		    object = Biobase::exprs(set),
+		    design = design,
+		    pos = Biobase::fData(set)$RANGE_START,
+		    chr = Biobase::fData(set)$CHR,
+		    ...
+		)$table
+	}
+	if(length(bumps) == 1 && is.na(bumps)){ # bumphunter found no bumps
+		bumps <- empty_bumps()
+	}
+	return(bumps)
 }
 
 filter_bumps <- function(bumps, min_cpgs_per_bump){
@@ -256,22 +259,37 @@ select_outlier_bumps <- function(bumps, method, pValue.cutoff, outlier.score){
 #'
 #' @examples
 format_bumps <- function(bumps, set, sample, method, reduced){
-  df_out <- tibble::as_tibble(bumps)
-  df_out$sample <- df_out$outlier_method <- character(nrow(df_out))
-  if(nrow(bumps) > 0){
-    df_out$sample <- sample
-    df_out$outlier_method <- method
-  }
-  df_out$cpg_ids <- mapply(
-    function(rown, i_st, i_end){paste(rown[i_st:i_end], collapse=",")},
-    df_out$indexStart,
-    df_out$indexEnd,
-    MoreArgs = list(rown = rownames(set))
-  )
-  if(reduced){
-    reduced_col <- c("sample", "chr", "start", "end", "cpg_ids",
-                     "outlier_method", "outlier_score")
-    df_out <- df_out[, reduced_col]
-  }
-  return(df_out)
+	df_out <- tibble::as_tibble(bumps)
+	df_out$sample <- df_out$outlier_method <- character(nrow(df_out))
+	if(nrow(bumps) > 0){
+		df_out$sample <- sample
+		df_out$outlier_method <- method
+	}
+	df_out$cpg_ids <- mapply(
+		function(rown, i_st, i_end){paste(rown[i_st:i_end], collapse=",")},
+		df_out$indexStart,
+		df_out$indexEnd,
+		MoreArgs = list(rown = rownames(set))
+	)
+	if(reduced){
+		reduced_col <- c("sample", "chr", "start", "end", "cpg_ids",
+		                 "outlier_method", "outlier_score")
+		df_out <- df_out[, reduced_col]
+	}
+	return(df_out)
+}
+
+empty_bumps <- function(){
+	bumps <- tibble::tibble(
+		"chr" = character(),
+		"start" = integer(),
+		"end" = integer(),
+		"value" = numeric(),
+		"area" = numeric(),
+		"cluster" = numeric(),
+		"indexStart" = integer(),
+		"indexEnd" = integer(),
+		"L" = numeric()
+	)
+	return(bumps)
 }
