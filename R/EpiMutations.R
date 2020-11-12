@@ -11,6 +11,8 @@
 #' \link[bumphunter]{bumphunter}.
 #' @param num.cpgs (integer) Bumps containing less cpgs than num.cpgs are discarded.
 #' @param pValue.cutoff 
+#' @param fStat_min
+#' @param betaDiff_min
 #' @param outlier.score 
 #' @param nsamp 
 #' @param method (string) The outlier scoring method. Choose from 
@@ -46,7 +48,7 @@ epimutations <- function(
   args.bumphunter = list(cutoff=0.1),
   num.cpgs = 3,
   pValue.cutoff = 0.01,
-  fStat_lim = c(20, 40),
+  fStat_min = 20,
   betaDiff_min = 0.2,
   outlier.score = 0.5,
   nsamp = "deterministic",
@@ -66,7 +68,7 @@ epimutations <- function(
     function(sample_id) {
       epimutations_per_sample(
         set, sample_id, cases_as_controls, args.bumphunter, num.cpgs,
-        pValue.cutoff, outlier.score, fStat_lim, betaDiff_min, nsamp, method, reduced_output
+        pValue.cutoff, fStat_min, betaDiff_min, outlier.score, nsamp, method, reduced_output
       )
     }
   )
@@ -82,9 +84,9 @@ epimutations_per_sample <- function(
   args.bumphunter = list(cutoff=0.1),
   num.cpgs = 3,
   pValue.cutoff = 0.01,
-  outlier.score = 0.5,
-  fStat_lim = c(20, 40),
+  fStat_min = 20,
   betaDiff_min = 0.2,
+  outlier.score = 0.5,
   nsamp = "deterministic",
   method = "manova",
   reduced_output = T
@@ -97,7 +99,7 @@ epimutations_per_sample <- function(
   
   bumps <- filter_bumps(bumps, min_cpgs_per_bump=num.cpgs)
   bumps <- compute_bump_outlier_scores(set, bumps, method, sample_id, design, nsamp)
-  bumps <- select_outlier_bumps(bumps, method, pValue.cutoff, fStat_lim, betaDiff_min, outlier.score)
+  bumps <- select_outlier_bumps(bumps, method, pValue.cutoff, fStat_min, betaDiff_min, outlier.score)
   
   epi <- format_bumps(bumps, set, sample_id, method, reduced_output)
   
@@ -137,6 +139,11 @@ check_params <- function(cases, controls, method, cases_as_controls, sample_ids)
   if(!missing(sample_ids) && any(!sample_ids %in% colnames(cases))){
     stop("Sample_ids must match column names in the cases object.")  
   }
+    n_controls <- ifelse(missing(controls), 0, ncol(controls))
+    if(cases_as_controls) n_controls <- n_controls + ncol(cases) - 1
+    if(method == "manova" && n_controls < 10){
+        warning("At least 10 control samples are recommended for the manova method.")
+    }
 }
 
 set_concat <- function(cases, controls){
@@ -218,35 +225,40 @@ compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp
   bumps$outlier_score <- bumps$outlier_significance <- rep(NA_real_, nrow(bumps))
   if(method == "manova") bumps$beta_diff <- rep(NA_real_, nrow(bumps))
   for(i in seq_len(nrow(bumps))) {
-    beta.values <- get_betas(bumps[i, ], set)
+    betas <- get_betas(bumps[i, ], set)
     if(method == "manova") {
-      if(ncol(beta.values) > nrow(beta.values) - 2 ) {
-        stop("Not enough samples to run MANOVA")
+        manova_has_enough_samples <- nrow(betas) >= ncol(betas) + 2
+      if(manova_has_enough_samples) {
+          stats_manova <- epi_manova(betas, model, sample)
+          bumps$outlier_score[i] <- stats_manova[1]
+          bumps$outlier_significance[i] <- stats_manova[3]
+          bumps$beta_diff[i] <- stats_manova[4]
       }
-      bumps$outlier_score[i] <- epi_manova(beta.values, model, sample)
     } else if(method == "mlm") {
-      bumps$outlier_score[i] <- epiMLM(beta.values, model)
+        stats_mlm <- epiMLM(betas, model)
+      bumps$outlier_score[i] <- stats_mlm[1]
+      bumps$outlier_significance[i] <- stats_mlm[3]
     } else if(method == "iso.forest") {
-      bumps$outlier_score[i] <- epiIsolationForest(beta.values, sample)
+      bumps$outlier_score[i] <- epiIsolationForest(betas, sample)
     } else if(method == "Mahdist.MCD") {
-      bumps$outlier_score[i] <- epiMahdist.MCD(beta.values, nsamp, sample)
+      bumps$outlier_score[i] <- epiMahdist.MCD(betas, nsamp, sample)
     }
   }
   
   return(bumps)
 }
 
-select_outlier_bumps <- function(bumps, method, pValue.cutoff, fStat_lim, betaDiff_min, outlier.score){
+select_outlier_bumps <- function(bumps, method, pValue.cutoff, fStat_min, betaDiff_min, outlier.score){
 
     if(method == "manova"){
         outliers <- subset(
             bumps,
-            outlier_score >= fStat_lim[1] && outlier_score <= fStat_lim[2] &&
-                beta_diff >= betaDiff_min &&
+            outlier_score >= fStat_min &
+                beta_diff >= betaDiff_min &
                 outlier_significance < pValue.cutoff 
         )
     } else if(method == "mlm"){
-        outliers <- subset(bumps, outlier_score < pValue.cutoff)
+        outliers <- subset(bumps, outlier_significance < pValue.cutoff)
     } else if(method == "iso.forest"){
         outliers <- subset(bumps, outlier_score > outlier.score)
     } else if(method == "Mahdist.MCD"){
