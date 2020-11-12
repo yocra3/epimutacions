@@ -12,7 +12,7 @@
 #' @param omim Bool, if TRUE will annotate OMIMs as well. Takes a bit longer. Default TRUE
 #' @return DataFrame-like object annotated.
 #' @export
-function(data, db, split=',', 
+annotate_CpG <- function(data, db, split=',', 
 		# illumina annotation parameters
 		epi_col='CpG_ids', gene_col='GencodeBasicV12_NAME', feat_col='Regulatory_Feature_Group', relat_col='Relation_to_Island',
 		# biomart parameters
