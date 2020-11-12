@@ -4,30 +4,33 @@
 #' 
 #' @param betas Beta values matrix
 #' @param Model Formula describing the model to be fitted
-#' @param Sample_id Character vector specifying the name of the sample
-#' to compute epimutations
 #' @return F statistic
 #' @export
 #' 
-epi_manova <-  function(betas, model, sample_id){
+epi_manova <-  function(betas, model, sample){
   
   # Fit the manova model
   mod <- manova(betas ~ model)
   # Model summary
   mod_summary <- summary(mod)$stats
-  # Obtain statistics (F statistic, pillai, p value)
-  statistics<- mod_summary[1,c("approx F", "Pillai","Pr(>F)")]
+  # Obtain F statistic
+  F_stat <- mod_summary[1,"approx F"]
   
-  # Calculate the beta mean difference
-  keep_case <- which(sample_id %in% rownames(betas))
+  # Filter out epimutation (F-statistic > 40 or F-statistic < 20 and mean difference > 0.2)
+  # Calculate the mean difference
+  keep_case <- which(sample %in% rownames(betas))
   case <- betas[keep_case,]
   controls <- betas[-keep_case,]
   coltrols_mean <- colMeans(controls)
-  beta_mean_difference <- coltrols_mean-case
+  mean_difference <- coltrols_mean-case
+  check_mean_difference<-mean_difference > 0.2
+  check_mean_difference<-unique(check_mean_difference)
+  length_check_mean_difference<-length(check_mean_difference)
   
-  output<-c(statistics,beta_mean_difference)
-
-  
- 
+  if(length_check_mean_difference == 1 & isTRUE(check_mean_difference)){# F-statistic < 20
+    output <- F_stat < 20
+  }else{# F-statistic > 40
+    output <- F_stat > 40
+  }
   return(output)
 }
