@@ -236,8 +236,8 @@ compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp
       }
     } else if(method == "mlm") {
         stats_mlm <- epiMLM(betas, model)
-      bumps$outlier_score[i] <- stats_mlm[1]
-      bumps$outlier_significance[i] <- stats_mlm[3]
+      bumps$outlier_score[i] <- stats_mlm["F value"]
+      bumps$outlier_significance[i] <- stats_mlm["Pr(>F)"]
     } else if(method == "iso.forest") {
       bumps$outlier_score[i] <- epiIsolationForest(betas, sample)
     } else if(method == "Mahdist.MCD") {
