@@ -1,4 +1,4 @@
-#' @export
+# @export
 epiIsolationForest<-function(beta.values, disease.sample.name)
 {
   if(is.null(beta.values))
