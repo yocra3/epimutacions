@@ -24,22 +24,22 @@
 #' \item{chr}{(string) Chromosome}
 #' \item{start}{(integer) Start position on chromosome}
 #' \item{end}{(integer) End position on chromosome}
+#' \item{length}{(integer) Region length on chromosome}
+#' \item{n_cpgs}{(integer) Number of CpGs spanned by region}
 #' \item{cpg_ids}{(string) Comma-separated CpG_ids in rownames(cases) spanned by region}
 #' \item{outlier_method}{(string) The outlier scoring method. Either
 #' "manova", "mlm", "iso.forest" or "Mahdist.MCD".}
-#' \item{outlier_score}{(numeric) The outlier score. A p-value for methods 
+#' \item{outlier_score}{(numeric) The outlier score. A F-statistic for methods 
 #' "manova" or "mlm". A score produced by \code{\link[isotree]{isolation.forest}} 
-#' for method "iso.forest". A boolean for method "Mahdist.MCD". }
+#' for method "iso.forest". A boolean for method "Mahdist.MCD".}
+#' \item{outlier_significance}{(numeric) The outlier significance statistic.
+#' P(>F-statistic) for methods "manova" or "mlm". NA for all other methods.}
 #' }
 #' @export
 #'
 #' @examples
 #' data("genomicratioset") # load toy dataset
-#' epi <- epimutations(
-#'   genomicratioset,
-#'   num.cpgs = 3,
-#'   method = "manova"
-#' )
+#' epi <- epimutations(genomicratioset)
 epimutations <- function(
   cases,
   controls,
