@@ -6,7 +6,7 @@
 \title{Matrix with simulated beta values for CpG islands
 for testing purposes}
 \format{
-An object of class \code{matrix} (inherits from \code{array}) with 20 rows and 5 columns.
+An object of class \code{matrix} (inherits from \code{array}) with 20 rows and 20 columns.
 }
 \usage{
 data("methylation_matrix")
@@ -15,10 +15,10 @@ data("methylation_matrix")
 A matrix object.
 }
 \description{
-The matrix contains 20 rows (CpG islands) and 5 columns
-(5 samples). The beta values are uniformly distributed
+The matrix contains 20 rows (CpG islands) and 20 columns
+(20 samples). The beta values are uniformly distributed
 between 0 and 0.1 for all samples and CpG islands.
-Sample #1 values for CpG_4, _5, _6, _7, _8 are >> 0.1
+Sample #1 values for (CpG_4 - CpG_16) are >> 0.1
 }
 \examples{
 data("methylation_matrix")
