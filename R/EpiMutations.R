@@ -211,7 +211,8 @@ filter_bumps <- function(bumps, min_cpgs_per_bump){
 }
 
 compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp){
-  bumps$outlier_score <- character(nrow(bumps))
+  bumps$outlier_score <- bumps$outlier_significance <- rep(NA_real_, nrow(bumps))
+  if(method == "manova") bumps$beta_diff <- rep(NA_real_, nrow(bumps))
   for(i in seq_len(nrow(bumps))) {
     beta.values <- get_betas(bumps[i, ], set)
     if(method == "manova") {
@@ -220,7 +221,7 @@ compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp
       }
       bumps$outlier_score[i] <- epi_manova(beta.values, model, sample)
     } else if(method == "mlm") {
-      bumps$outlier_score[i] <- epiMLM(beta.values, model)  
+      bumps$outlier_score[i] <- epiMLM(beta.values, model)
     } else if(method == "iso.forest") {
       bumps$outlier_score[i] <- epiIsolationForest(beta.values, sample)
     } else if(method == "Mahdist.MCD") {
