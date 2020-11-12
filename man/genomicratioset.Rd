@@ -17,14 +17,26 @@ A \code{GenomicRatioSet} object.
 \description{
 \code{GenomicRatioSet} object, annotated with
 \code{IlluminaHumanMethylation450kanno.ilmn12.hg19} data
-with random sample choosing (via \code{sample(485512, 20)}).
-Only rows for CpG_4, _5, _6, _7, _8 are chosen
-with \code{rownames(Locations)[3000:3004]} in order to simulate
-real hit with continous CpG island methylation difference.
+with contiguous CpG choosing on 15 chr.
 }
 \details{
 Dimensions: The dataset consist of 20 rows (representing CpG islands)
 and 5 columns (representing samples)
+
+Sample choosing was done with subseting the default Locations
+dataframe:
+\code{chr15 <- data.frame(Locations) %>%
+filter(chr == 'chr15')}
+After that, new dataframe was ordered by position in ascending order
+and slice with 20 CpG names was taken:
+\code{row_n <- rownames(arrange(chr15, chr15$pos)[1178:1197,])}
+The difference in position between 1197 and 1178 element is
+731 bp.
+
+The geneticratioset was created via:
+\code{geneticratioset <- makeGenomicRatioSetFromMatrix(methylation_matrix, 
+rownames = row_n, pData = data.frame(id = c("case_1", "case_2", "case_3", 
+"case_4", "case_5")))}
 }
 \examples{
 data("methylation_matrix")
