@@ -51,7 +51,7 @@
 #' as "hypomethylation").
 #' @example 
 #' data(genomicratioset)
-#' xx <- epi_detecton_barbosa(genomicratioset[, 1], genomicratioset[ , 2:5])
+#' epi_detection_barbosa(genomicratioset[, 1], genomicratioset[ , 2:5])
 #' @export
 epi_detection_barbosa <- function(cases, controls, bctr_min, bctr_max,
 			bctr_mean, bctr_pmin, bctr_pmax, window_sz = 1000, N = 3, 
@@ -89,7 +89,7 @@ epi_detection_barbosa <- function(cases, controls, bctr_min, bctr_max,
 		stop("Required controls beta metilation levels or mean beta metilation for each probe")
 	}
 	if(!missing(controls) & missing(bctr_pmin) & missing(bctr_pmax)) {
-		bctr_pmin <- apply(bctr, 1, quantile, probs = 0.01, na.rm = TRUE)
+		bctr_pmin <- apply(bctr, 1, quantile, probs = c(0.01, 0.99), na.rm = TRUE)
 		bctr_pmax <- bctr_pmin[2, ]
 		bctr_pmin <- bctr_pmin[1, ]
 	} else {
@@ -102,8 +102,8 @@ epi_detection_barbosa <- function(cases, controls, bctr_min, bctr_max,
 	# Identify outlier at the probands side using previous statistics
 	bcas <- minfi::getBeta(cases)
 	flag_result <- data.frame(
-		chr = as.character(seqnames(rowRanges(cases))),
-		pos = start(rowRanges(cases)),
+		chr = as.character(SummarizedExperiment::seqnames(SummarizedExperiment::rowRanges(cases))),
+		pos = SummarizedExperiment::start(SummarizedExperiment::rowRanges(cases)),
 		probands = bcas[ , 1],
 		flag_q_sup = bcas[, 1] >= bctr_pmax & bcas[, 1] >= bctr_max + offset_abs,
 		flag_q_inf = bcas[, 1] <= bctr_pmin & bcas[, 1] <= bctr_min - offset_abs,
@@ -217,7 +217,7 @@ epi_detection_barbosa <- function(cases, controls, bctr_min, bctr_max,
 		do.call(rbind, lapply(unique(flag_df$region), function(reg) {
 			x <- flag_df[flag_df$region == reg, ]
 			data.frame(
-				chr = x$chr[1],
+				chromosome = x$chr[1],
 				start = min(x$pos),
 				end = max(x$pos),
 				length = max(x$pos) - min(x$pos),
@@ -232,7 +232,9 @@ epi_detection_barbosa <- function(cases, controls, bctr_min, bctr_max,
 	
 	# We collapse the CpGs in regions and format the output
 	clean_sup <- collapse_regions(reg_sup)
+	clean_sup <- clean_sup[!is.na(clean_sup$chromosome), ]
 	clean_inf <- collapse_regions(reg_inf)
+	clean_inf <- clean_inf[!is.na(clean_inf$chromosome), ]
 	
 	return(rbind(clean_inf, clean_sup))
 }
