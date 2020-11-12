@@ -19,9 +19,6 @@ annotate_epimutations <- function(epi_results, db = "IlluminaHumanMethylationEPI
 	## Add gene mapping and CpG island information
 	epi_results <- annotate_CpG(epi_results, db = db,  ...)
 	
-	## Add gene information
-	#epi_results <- add_gene_information(epi_results)
-	
 	## Add ENSEMBL regulatory regions
 	epi_results <- add_ENSEMBL_regulatory(epi_results, build = build)
 	epi_results
