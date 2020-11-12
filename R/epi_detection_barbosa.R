@@ -3,7 +3,6 @@
 #' This function implements the method for epimutation detection by Berbose et.
 #' al. 2019. The process consist in identifying regions of CpGs that are
 #' hypermethylated or hypometilated as:
-#' 
 #'  1. Hypermethylation: the case presents, in a 1kb window, probes that 
 #'     fulfill both of the following criteria:
 #'       A. At least 3 probes that each have betas above the 99.9th percentile 
@@ -19,23 +18,54 @@
 #'       B. At least 1 probe with a β value >=0.1 below the minimum observed in
 #'          reference for that probe.
 #' 
-#' @param cases GenomicRatioSet with cases (probands) methylation data
+#' @param cases GenomicRatioSet with cases (probands) methylation data.
 #' @param controls GenomicRatioSet with controls methylation data to be used as
 #' reference.
-#' @param window_sz integer defining the window size where N CpGs have to be to 
-#' define a region (default: 1000)
-#' @param N integer defining the number of CpGs to closer than window bases to
-#' define a region (default: 3)
-#' @param offset_mean float defines the offset for the mean comparison, 
-#' understood as that a probe has to be offset_mean over the reference mean to 
-#' be considered outlier
-#' @param offset_abs float defining the offset for the min/max comparison,
-#' understood as that a probe has to be offset_abs under/over the min/max
-#' value of a probe in the reference to be considered outlier
+#' @param bctr_min float Vector with the minimal beta metilation level for each 
+#' probe in the reference distribution. Required if controls are not provided.
+#' @param bctr_max float Vector with the maximal beta metilation level for each 
+#' probe in the reference distribution. Required if controls are not provided.
+#' @param bctr_mean float Vector with the mean beta metilation level for each 
+#' probe in the reference distribution. Required if controls are not provided.
+#' @param bctr_pmin float Vector with the 0.1th percentile of beta metilation 
+#' level for each probe in the reference distribution. Required if controls are
+#'  not provided.
+#' @param bctr_pmax float Vector with the 99th percentile of beta metilation 
+#' level for each probe in the reference distribution. Required if controls are
+#'  not provided.
+#' @param window_sz integer Window size where N CpGs have to be to  define a 
+#' region (default: 1000).
+#' @param N integer Number of CpGs to closer than window bases to define a 
+#' region (default: 3).
+#' @param offset_mean float Offset for the mean comparison, understood as that a
+#'  probe has to be offset_mean over the reference mean to be considered outlier
+#' @param offset_abs float Offset for the min/max comparison, understood as that
+#' a probe has to be offset_abs under/over the min/max value of a probe in the 
+#' reference to be considered outlier.
+#' @return A data.frame containing the identified epimuations as regions with
+#' chr (chromosome), start (in bases, position of first outlier in region), end 
+#' (in bases,position of the last outlier in region), length (number of bases
+#' from first to last outlier in the region), N_CpGs (number of outlier in the
+#' region), CpG_ids (CpGs IDs separated by ","), outlier_method (set as 
+#' "barbosa"), and outlier_score (indicating a region  as "hypermethylation" or 
+#' as "hypomethylation").
+#' @example 
+#' data(genomicratioset)
+#' xx <- epi_detecton_barbosa(genomicratioset[, 1], genomicratioset[ , 2:5])
 #' @export
-epi_detection_barbosa <- function(cases, controls, window_sz = 1000, N = 3, offset_mean = 0.15, offset_abs = 0.1) {
+epi_detection_barbosa <- function(cases, controls, bctr_min, bctr_max,
+			bctr_mean, bctr_pmin, bctr_pmax, window_sz = 1000, N = 3, 
+		offset_mean = 0.15, offset_abs = 0.1) {
+	# Check that there is a single proband
 	if(ncol(cases) != 1) {
 		stop("Epimutation detection with berbosa approach can only works with a singe proband")
+	}
+	
+	# Check that or controls are given or background reference distribution 
+	# statistics are indicated
+	if(missing(controls) & missing(bctr_min) & missing(bctr_max) & 
+	   missing(bctr_mean) & missing(bctr_pmin) & missing(bctr_pmax)) {
+		stop("To identify epimutation susing Barbosa et. al. or control beta metilation data or min, max, mean, 99th percentile and 0.1 percentail of beta metilation at probe level is required")
 	}
 	
 	# Compute requires statistics from controls for each probe:
@@ -44,13 +74,30 @@ epi_detection_barbosa <- function(cases, controls, window_sz = 1000, N = 3, offs
 	#    * 99th percentile of reference beta value
 	#    * 0.1st percentile of reference beta value
 	#    * mean of reference beta value
-	bctr <- minfi::getBeta(controls)
-	bctr_min <- apply(bctr, 1, min, na.rm = TRUE)
-	bctr_max <- apply(bctr, 1, max, na.rm = TRUE)
-	bctr_mean <- apply(bctr, 1, mean, na.rm = TRUE)
-	bctr_pmin <- apply(bctr, 1, quantile, probs = 0.01, na.rm = TRUE)
-	bctr_pmax <- apply(bctr, 1, quantile, probs = 0.99, na.rm = TRUE)
-	rm(bctr)
+	if(!missing(controls)) {
+		bctr <- minfi::getBeta(controls)
+	}
+	if(!missing(controls) & missing(bctr_min) & missing(bctr_max)) {
+		bctr_min <- apply(bctr, 1, min, na.rm = TRUE)
+		bctr_max <- apply(bctr, 1, max, na.rm = TRUE)
+	} else {
+		stop("Required controls beta metilation levels or minimal and maximal beta metilation for each probe")
+	}
+	if(!missing(controls) & missing(bctr_mean)) {
+		bctr_mean <- apply(bctr, 1, mean, na.rm = TRUE)
+	} else {
+		stop("Required controls beta metilation levels or mean beta metilation for each probe")
+	}
+	if(!missing(controls) & missing(bctr_pmin) & missing(bctr_pmax)) {
+		bctr_pmin <- apply(bctr, 1, quantile, probs = 0.01, na.rm = TRUE)
+		bctr_pmax <- bctr_pmin[2, ]
+		bctr_pmin <- bctr_pmin[1, ]
+	} else {
+		stop("Required controls beta metilation levels or 0.01th and 99th percentile of beta metilation for each probe")
+	}
+	if(!missing(controls)) {
+		rm(bctr)
+	}
 	
 	# Identify outlier at the probands side using previous statistics
 	bcas <- minfi::getBeta(cases)
@@ -75,6 +122,10 @@ epi_detection_barbosa <- function(cases, controls, window_sz = 1000, N = 3, offs
 	
 	# Function used to detect regions of N CpGs closer than window size
 	get_regions <- function(flag_df, window_sz = 1000, N = 3, pref = "R") {
+		if(nrow(flag_df) < N) {
+			return(data.frame(chr=NA, pos=NA, probands=NA, region=NA))
+		}
+		
 		# Order the input first by chromosome and then by position
 		flag_df <- flag_df[with(flag_df, order(chr, pos)), ]
 		
@@ -171,7 +222,7 @@ epi_detection_barbosa <- function(cases, controls, window_sz = 1000, N = 3, offs
 				end = max(x$pos),
 				length = max(x$pos) - min(x$pos),
 				N_CpGs = nrow(x),
-				CpG_ids = paste(x$CpG_ids, collapse = "/", sep = ""),
+				CpG_ids = paste(x$CpG_ids, collapse = ",", sep = ""),
 				outlier_method = "barbosa",
 				outlier_score = x$outlier_score[1]
 			)
