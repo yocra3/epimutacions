@@ -1,0 +1,66 @@
+---
+title: "Detection of epimutations with state of the art statistics methods in methylation data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Epumutation detection in methylation data}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+# Setup
+
+## Installing the package
+
+```{r, eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("epimutacions")
+```
+
+
+## Loading libraries
+
+```{r, message=FALSE}
+library(epimutacions)
+library(SummarizedExperiment)
+library(minfi)
+```
+
+## Preparing dataset
+
+```{r}
+data("genomicratioset")
+```
+
+```{r}
+dta <- genomicratioset
+colData(dta)$status <- "control"
+colData(dta)["case_1", "status"] <- "case"
+```
+
+```{r}
+heatmap(minfi::getBeta(genomicratioset))
+```
+
+```{r, echo=FALSE}
+rm(genomicratioset)
+```
+
+## Evaluate methods
+
+```{r}
+epi_brb <- epimutacions(dta, method = "barbosa", verbose = TRUE)
+```
+
+```{r}
+epi_mlm <- epimutacions(dta, method = "mlm", verbose = TRUE)
+```
+
+```{r}
+epi_mvo <- epimutacions(dta, method = "manova", verbose = TRUE)
+```
+
+```{r}
+epi_mcd <- epimutacions(dta, method = "mahdist.mcd", verbose = TRUE)
+```

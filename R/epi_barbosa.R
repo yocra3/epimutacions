@@ -68,7 +68,7 @@ epi_barbosa <- function(case, fd, bctr_min, bctr_max, bctr_mean, bctr_pmin,
 			# will be tagged with the same number
 			red_df$cum <- cumsum(!red_df$in_next)
 			
-			# correct the base position of the change in the region
+			# Correct the base position of the change in the region
 			red_df$cum2 <- red_df$cum
 			for(ii in seq(2, nrow(red_df))) {
 				if(red_df$cum[ii] != red_df$cum[ii - 1] & red_df$in_prev[ii] & !red_df$in_next[ii]) {

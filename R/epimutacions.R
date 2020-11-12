@@ -1,5 +1,5 @@
 #' @export
-epimutacions <- function(methy, min_cpg = 3, verbose = TRUE) #, num.cpgs = 10, pValue.cutoff = 0.01, 
+epimutacions <- function(methy, method, min_cpg = 3, verbose = TRUE) #, num.cpgs = 10, pValue.cutoff = 0.01, 
 					   #cutoff =0.1, outlier.score = 0.5, 
 					   #nsamp = "deterministic",method = "manova")
 {
@@ -21,6 +21,7 @@ epimutacions <- function(methy, min_cpg = 3, verbose = TRUE) #, num.cpgs = 10, p
 		betas <- minfi::getBeta(methy)
 		pd <- as.data.frame(SummarizedExperiment::colData(methy))
 		fd <- as.data.frame(SummarizedExperiment::rowRanges(methy))
+		rownames(fd) <- rownames(dta)
 	} else if(class(methy) == "ExpressionSet") {
 		if(verbose) message("Input of type 'ExpressionSet")
 		betas <- Biobase::exprs(methy)
@@ -35,6 +36,7 @@ epimutacions <- function(methy, min_cpg = 3, verbose = TRUE) #, num.cpgs = 10, p
 	
 	# Identify the method to be used
 	method <- charmatch(method, c("manova", "mlm", "iso.forest", "mahdist.mcd", "barbosa"))
+	method <- c("manova", "mlm", "iso.forest", "mahdist.mcd", "barbosa")[method]
 	if(method %in% c("iso.forest")) {
 		stop("Method not implemented yet")
 	}
@@ -105,6 +107,8 @@ epimutacions <- function(methy, min_cpg = 3, verbose = TRUE) #, num.cpgs = 10, p
 				}
 			}))
 		})
+		
+		return(rst)
 	} else if(method == "barbosa") {
 		# Compute reference statistics
 		if(verbose) message("Calculating statistics from reference distribution required by Barbosa et. al. 2019")
@@ -112,9 +116,9 @@ epimutacions <- function(methy, min_cpg = 3, verbose = TRUE) #, num.cpgs = 10, p
 		bctr_max <- apply(betas[ , ctr_sam], 1, max, na.rm = TRUE)
 		bctr_mean <- apply(betas[ , ctr_sam], 1, mean, na.rm = TRUE)
 		bctr_prc <- apply(betas[ , ctr_sam], 1, quantile, probs = c(0.01, 0.99), na.rm = TRUE)
-		
-		#bctr_pmin <- bctr_prc[1, ]
-		#bctr_pmax <- bctr_prc[2, ]
+		bctr_pmin <- bctr_prc[1, ]
+		bctr_pmax <- bctr_prc[2, ]
+		rm(bctr_prc)
 		#case <- betas[ , cas_sam[1], drop=FALSE]
 		
 		# Run region detection
@@ -124,7 +128,7 @@ epimutacions <- function(methy, min_cpg = 3, verbose = TRUE) #, num.cpgs = 10, p
 			x$sample <- case
 			x
 		}))
+		
+		return(rst)
 	}
-	
-	return(rst)
 }

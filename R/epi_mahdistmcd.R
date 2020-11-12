@@ -5,6 +5,7 @@
 #' https://stats.stackexchange.com/questions/137263/multivariate-outlier-detection-with-robust-mahalanobis
 epi_mahdistmcd <- function(mixture, nsamp = c("best", "exact", "deterministic")) {
 	nsamp <- charmatch(nsamp, c("best", "exact", "deterministic"))
+	nsamp <- c("best", "exact", "deterministic")[nsamp]
 	if(is.na(nsamp)) {
 		stop("Argument 'nsamp' shuld be 'best', 'exact', 'deterministic'")
 	}
