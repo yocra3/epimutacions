@@ -59,20 +59,38 @@ test_that("raises if all post-bumphunter methods are specified", {
 
 
 
-test_that("raises if subject ids are not avaialble", {
+test_that("raises if subject ids are not available", {
 	data("genomicratioset")
 	nullids <- genomicratioset
 	colnames(nullids) <- NULL
-	expect_error(epimutations(cases = nullids, num.cpgs = 3, method = "iso.forest"))
+	expect_error(epimutations(cases = nullids, num.cpgs = 3))
 })
 
 
 
 test_that("raises if cases are in controls", {
 	data("genomicratioset")
-	expect_error(epimutations(cases = genomicratioset, controls = genomicratioset, num.cpgs = 3, method = "iso.forest"))
+	expect_error(epimutations(cases = genomicratioset, controls = genomicratioset, num.cpgs = 3))
 })
 
 
+
+test_that("raises num cpgs is 0", {
+	data("genomicratioset")
+	expect_error(epimutations(cases = genomicratioset, num.cpgs = 0, method = "manova"), "minimum number of cpgs must be 3")
+	expect_error(epimutations(cases = genomicratioset, num.cpgs = 0, method = "mlm"), "minimum number of cpgs must be 3")
+	expect_error(epimutations(cases = genomicratioset, num.cpgs = 0, method = "iso.forest"), "minimum number of cpgs must be 3")
+	expect_error(epimutations(cases = genomicratioset, num.cpgs = 0, method = "Mahdist.MCD"), "minimum number of cpgs must be 3")
+})
+
+
+
+
+test_that("returns output when NA's are present", {
+	data("genomicratioset")
+	subjectwithna <- genomicratioset
+	assay(subjectwithna)[,1] <- NA
+	expect_warning(class(epimutations(cases = subjectwithna)))
+})
 
 
