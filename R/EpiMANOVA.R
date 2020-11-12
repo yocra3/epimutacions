@@ -22,7 +22,7 @@ epi_manova <-  function(betas, model, sample_id){
   
   # Calculate the beta mean difference
   case_row <- which(rownames(betas) %in% sample_id)
-  beta_mean_difference <- abs(mean(colMeans(betas[-case_row,]) - betas[case_row,]))
+  beta_mean_difference <- mean(abs(colMeans(betas[-case_row,]) - betas[case_row,]))
 
   output<-c(statistics, beta_mean_difference)
 
