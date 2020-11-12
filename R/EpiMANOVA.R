@@ -25,7 +25,7 @@ epi_manova <-  function(betas, model, sample_id){
   coltrols_mean <- colMeans(controls)
   beta_mean_difference <- coltrols_mean-case
   
-  output<-list(statistics,beta_mean_difference)
+  output<-c(statistics,beta_mean_difference)
 
   
  
