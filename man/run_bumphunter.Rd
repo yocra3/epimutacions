@@ -15,7 +15,8 @@ representing covariates. Regression is applied to each row of set.}
 \item{...}{Extra arguments to pass to \link[bumphunter]{bumphunter}}
 }
 \value{
-The object returned by \link[bumphunter]{bumphunter}
+The object returned by \link[bumphunter]{bumphunter}, or if no bumps
+are found, a mock bumps object with zero rows returned by \code{empty_bumps}.
 }
 \description{
 See \link[bumphunter]{bumphunter} doc for details.

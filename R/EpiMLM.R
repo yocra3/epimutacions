@@ -5,7 +5,7 @@ epiMLM<-function(beta.values, model)
   
  
   mod <- mlm::mlm(beta.values ~ model[,2])
-  p.value<-mod$aov.tab[1, "Pr(>F)"]
+  output<-mod$aov.tab[1, c("approx F", "R2", "Pr(>F)")]
   
-  return(p.value)
+  return(output)
 }
