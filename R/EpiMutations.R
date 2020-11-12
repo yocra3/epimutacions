@@ -277,6 +277,8 @@ format_bumps <- function(bumps, set, sample, method, reduced){
 		df_out$sample <- sample
 		df_out$outlier_method <- method
 	}
+	df_out$length <- df_out$end - df_out$start + 1
+	df_out$n_cpgs <- df_out$indexEnd - df_out$indexStart + 1
 	df_out$cpg_ids <- mapply(
 		function(rown, i_st, i_end){paste(rown[i_st:i_end], collapse=",")},
 		df_out$indexStart,
@@ -284,7 +286,7 @@ format_bumps <- function(bumps, set, sample, method, reduced){
 		MoreArgs = list(rown = rownames(set))
 	)
 	if(reduced){
-		reduced_col <- c("sample", "chr", "start", "end", "cpg_ids",
+		reduced_col <- c("sample", "chr", "start", "end", "length", "n_cpgs", "cpg_ids",
 		                 "outlier_method", "outlier_score", "outlier_significance")
 		df_out <- df_out[, reduced_col]
 	}
