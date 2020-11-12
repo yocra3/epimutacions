@@ -285,7 +285,7 @@ format_bumps <- function(bumps, set, sample, method, reduced){
 	)
 	if(reduced){
 		reduced_col <- c("sample", "chr", "start", "end", "cpg_ids",
-		                 "outlier_method", "outlier_score")
+		                 "outlier_method", "outlier_score", "outlier_significance")
 		df_out <- df_out[, reduced_col]
 	}
 	return(df_out)
