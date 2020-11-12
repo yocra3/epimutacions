@@ -37,6 +37,7 @@ test_that("raises if GenomicRatioSet and less than (1 case, 2 control) samples",
 	)
 })
 
+
 test_that("returns zero rows if bumphunter finds no bumps", {
 	data("genomicratioset")
 	actual <- nrow(epimutations(cases = genomicratioset[1,]))
@@ -48,3 +49,30 @@ test_that("returns with toy genomicratioset", {
 	out <- epimutations(cases = genomicratioset, num.cpgs = 3, method = "iso.forest")
 	expect_equal(nrow(out), 0)
 })
+
+
+
+test_that("raises if all post-bumphunter methods are specified", {
+	data("genomicratioset")
+	expect_error(epimutations(cases = genomicratioset, method=c("manova", "mlm", "iso.forest", "Mahdist.MCD"), "Method must be 'manova', 'mlm','iso.forest','Mahdist.MCD'"))
+})
+
+
+
+test_that("raises if subject ids are not avaialble", {
+	data("genomicratioset")
+	nullids <- genomicratioset
+	colnames(nullids) <- NULL
+	expect_error(epimutations(cases = nullids, num.cpgs = 3, method = "iso.forest"))
+})
+
+
+
+test_that("raises if cases are in controls", {
+	data("genomicratioset")
+	expect_error(epimutations(cases = genomicratioset, controls = genomicratioset, num.cpgs = 3, method = "iso.forest"))
+})
+
+
+
+
