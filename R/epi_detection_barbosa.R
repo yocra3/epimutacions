@@ -208,9 +208,9 @@ epi_detection_barbosa <- function(cases, controls, bctr_min, bctr_max,
 	reg_inf <- get_regions(flag_inf, pref = "Ri")
 	
 	# We add a column indicating the direction of the regions/outliers
-	reg_sup$outlier_score <- "hypermethylation"
+	reg_sup$outlier_direction <- "hypermethylation"
 	reg_sup$CpG_ids <- rownames(reg_sup)
-	reg_inf$outlier_score <- "hypomethylation"
+	reg_inf$outlier_direction <- "hypomethylation"
 	reg_inf$CpG_ids <- rownames(reg_inf)
 	
 	collapse_regions <- function(flag_df) {
@@ -224,7 +224,9 @@ epi_detection_barbosa <- function(cases, controls, bctr_min, bctr_max,
 				N_CpGs = nrow(x),
 				CpG_ids = paste(x$CpG_ids, collapse = ",", sep = ""),
 				outlier_method = "barbosa",
-				outlier_score = x$outlier_score[1]
+				outlier_score = NA,
+				outlier_significance = NA,
+				outlier_direction = x$outlier_direction[1]
 			)
 				
 		}))
