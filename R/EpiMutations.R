@@ -228,7 +228,9 @@ compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp
       bumps$outlier_significance[i] <- stats_manova[3]
       bumps$beta_diff[i] <- stats_manova[4]
     } else if(method == "mlm") {
-      bumps$outlier_score[i] <- epiMLM(beta.values, model)
+        stats_mlm <- epiMLM(beta.values, model)
+      bumps$outlier_score[i] <- stats_mlm[1]
+      bumps$outlier_significance[i] <- stats_mlm[3]
     } else if(method == "iso.forest") {
       bumps$outlier_score[i] <- epiIsolationForest(beta.values, sample)
     } else if(method == "Mahdist.MCD") {
@@ -249,7 +251,7 @@ select_outlier_bumps <- function(bumps, method, pValue.cutoff, fStat_lim, betaDi
                 outlier_significance < pValue.cutoff 
         )
     } else if(method == "mlm"){
-        outliers <- subset(bumps, outlier_score < pValue.cutoff)
+        outliers <- subset(bumps, outlier_significance < pValue.cutoff)
     } else if(method == "iso.forest"){
         outliers <- subset(bumps, outlier_score > outlier.score)
     } else if(method == "Mahdist.MCD"){
