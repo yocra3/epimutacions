@@ -1,7 +1,6 @@
 #' Function to annotate DMR resulting from epimutacions package
 #' 
 #' This function annotates a methylated region
-#' TxDbannotation package is required
 #' @param data DataFrame-like object.
 #' @param db Database to use for annotation. E.g: IlluminaHumanMethylationEPICanno.ilm10b2.hg19.
 #' @param split Separator for CpG ids. Default ','.
@@ -22,6 +21,7 @@ function(data, db, split=',',
 	
 	
 	# get illumina data base
+	message('Loading DB')
 	anno <- minfi::getAnnotation(db)
 	
 	epids_list <- data[[epi_col]]
@@ -90,7 +90,7 @@ function(data, db, split=',',
 		
 	})
 	# Appending OMIM data
-	annotated_omim <- rbindlist(annotated_omim)
+	annotated_omim <- do.call('rbind', annotated_omim)
 	data <- cbind(data, annotated_omim)
 	}
 	
