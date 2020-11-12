@@ -230,9 +230,9 @@ compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp
         manova_has_enough_samples <- nrow(betas) >= ncol(betas) + 2
       if(manova_has_enough_samples) {
           stats_manova <- epi_manova(betas, model, sample)
-          bumps$outlier_score[i] <- stats_manova[1]
-          bumps$outlier_significance[i] <- stats_manova[3]
-          bumps$beta_diff[i] <- stats_manova[4]
+          bumps$outlier_score[i] <- stats_manova["approx F"]
+          bumps$outlier_significance[i] <- stats_manova["Pr(>F)"]
+          bumps$beta_diff[i] <- stats_manova["beta_mean_abs_diff"]
       }
     } else if(method == "mlm") {
         stats_mlm <- epiMLM(betas, model)
