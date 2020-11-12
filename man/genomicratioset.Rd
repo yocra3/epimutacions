@@ -6,7 +6,7 @@
 \title{\code{GenomicRatioSet} class object, created from
 methylation_matrix dataset}
 \format{
-An object of class \code{GenomicRatioSet} with 20 rows and 5 columns.
+An object of class \code{GenomicRatioSet} with 20 rows and 20 columns.
 }
 \usage{
 data("genomicratioset")
