@@ -25,3 +25,19 @@ get_betas <- function(bump, dataset) {
 	# Return transposed matrix
 	return(t(betas))
 }
+
+#' Return the average regional methylation difference between a case and controls.
+#'
+#' @param betas (matrix) The beta values. Columns are CpGs, rows are samples.
+#' @param case_id (string) The rowname in betas for the case of interest.
+#'
+#' @return (numeric) mean_beta(case) - mean_beta(controls)
+#' @keywords internal
+ave_beta_case_minus_controls <- function(betas, case_id){
+	case_row <- which(rownames(betas) %in% case_id)
+	average_betas_per_sample <- rowMeans(betas)
+	return(
+		average_betas_per_sample[case_row] - 
+			mean(average_betas_per_sample[-case_row])
+	)
+}
