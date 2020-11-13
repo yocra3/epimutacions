@@ -14,3 +14,12 @@ epi_manova <-  function(mixture, model, case_id){
 	output <- list(statistics, beta_mean_difference)
 	return(output)
 }
+
+res_manova <- function(bump, beta_bump, sts, case) {
+	bump$outlier_score <- paste0(sts[[1]][1], "/", sts[[1]][2])
+	bump$outlier_significance <- sts[[1]][3]
+	bump$outlier_direction <- ifelse(bump$value < 0, "hypomethylation", "hypermethylation")
+	bump$CpG_ids <- paste(rownames(beta_bump), collapse = ",", sep = "")
+	bump$sample <- case
+	bump[ , c("chr", "start", "end", "sz", "L", "CpG_ids", "outlier_score", "outlier_significance", "outlier_direction", "sample")]
+}

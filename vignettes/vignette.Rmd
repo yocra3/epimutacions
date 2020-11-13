@@ -1,11 +1,36 @@
 ---
 title: "Detection of epimutations with state of the art statistics methods in methylation data"
 output: rmarkdown::html_vignette
+bibliography: refs.bib
 vignette: >
-  %\VignetteIndexEntry{Epumutation detection in methylation data}
+  %\VignetteIndexEntry{Detection of epimutations with state of the art statistics methods in methylation data}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
+
+# Preface
+
+A large part of the development of this packages was produced along the [European BioHackathon 2020](https://www.biohackathon-europe.org/), where we worked on implementing to enable analyzing epimutations to the rare disease community. We worked on three main areas: (1) implementation of algorithms to detect epimutations; (2) implementation of reporting functions; (3) testing and validation of the package.
+
+The following are the team members of the _Project #5_ and we consider this as a statement of their contribution to this package:
+
+| Name | Surname | ORCID | Affiliation | Team |
+|:-----|:--------|:-----:|:------------|:-----|
+| Leire | Abarrategui | 0000-0002-1175-038X | Faculty of Medical Sciences, Newcastle University, Newcastle-Upon-Tyne, UK	ISGlobal; ISGlobal, Barcelona Institute for Global Health, Barcelona, Spain | Development |
+| Lordstrong | Akano | 0000-0002-1404-0295 | College of Medicine, University of Ibadan | Development |
+| James | Baye | 0000-0002-0078-3688 | Wellcome/MRC Cambridge Stem Cell Institute, University of Cambridge, Cambridge CB2 0AW, UK; Department of Physics, University of Cambridge, Cambridge CB2 3DY, UK | Development |
+| Alejandro | Caceres | - | ISGlobal, Barcelona Institute for Global Health, Dr Aiguader 88, 08003 Barcelona, Spain; Centro de Investigación Biomédica en Red en Epidemiología y Salud Pública (CIBERESP), Madrid, Spain | Development |
+| Carles | Hernandez-Ferrer | 0000-0002-8029-7160 | Centro Nacional de Análisis Genómico (CNAG-CRG), Center for Genomic, Regulation; Barcelona Institute of Science and Technology (BIST), Barcelona, Catalonia, Spain | Development |		
+| Pavlo | Hrab | 0000-0002-0742-8478 | Department of Genetics and Biotechnology, Biology faculty, Ivan Franko National University of Lviv | Validation |
+| Raquel | Manzano | 0000-0002-5124-8992 | Cancer Research UK Cambridge Institute; University of Cambridge, Cambridge, United Kingdom | Reporting |
+| Margherita | Mutarelli | 0000-0002-2168-5059 | Institute of Applied Sciences and Intelligent Systems (ISASI-CNR) | Validation |
+| Carlos | Ruiz-Arenas | 0000-0002-6014-3498 | Centro de Investigación Biomédica en Red de Enfermedades Raras (CIBERER), Barcelona, Spain; Universitat Pompeu Fabra (UPF), Barcelona, Spain | Reporting |
+
+# Background
+
+Rare diseases are pathologies with low prevalence (< 1 per 2,000 people). Most of these pathologies have an onset during childhood and a strong genetic etiology. Consequently, rare disease diagnosis has relied on identifying genetic and genomic mutations that can cause the disease. Although these variants have provided a diagnosis for many patients and families, around 60% of the cases still remained un-diagnosed [@Lionel2018]. Aberrant methylation can be an underlying cause of un-diagnosed patients, either as a primary event (a.k.a. epimutation) or as a functional consequence of chromatin dysregulation by genetic or environmental agents (a.k.a. episignature). Epimutations are the cause of some rare
+
+diseases, such as Prader-Willi, Angelman or Beckwith-Wiedemann syndromes [@Aref-Eshghi2019; @Inoue2017] and some human malformations [@Serra-Juhe2015]. Syndrome-specific episignatures are increasingly defined as biomarkers for a growing number of disorders [@Aref-Eshghi2020]. Therefore, tools to detect epimutations and episignatures should be made available to the rare disease community and included in standardized analysis workflows.
 
 # Setup
 
@@ -29,38 +54,98 @@ library(minfi)
 
 ## Preparing dataset
 
-```{r}
-data("genomicratioset")
-```
+The `epimutacions` package comes with a small dataset to show the capabilities of the implemented methods. The following lines shows how to load the data and it presents the `GenomicRatioSet`: 
 
 ```{r}
-dta <- genomicratioset
-colData(dta)$status <- "control"
-colData(dta)["case_1", "status"] <- "case"
+data("methy")
+methy
 ```
+
+To with with `epimutacions`, any `ExpresionSet` or `GenomicRatioSet` must come with a variable called `status` indicating which samples are _cases_ and which _controls_. Here we see how many of each were included:
 
 ```{r}
-heatmap(minfi::getBeta(genomicratioset))
+table(methy$status)
 ```
 
-```{r, echo=FALSE}
-rm(genomicratioset)
+# Epimutation detection
+
+## Methods included for epimutations detection
+
+The `epimutacions` package includes 5 methods to detect epimutations. Two of these methods were descried elsewhere before [@Barbosa2018, @Aref-Eshghi2019], and the other three are adaptations of one of them:
+
+| Method | Short description |
+|:------:|:------------------|
+| `"barbosa"`     | Previously described [@Barbosa2018] |
+| `"manova"`      | Previously described [@Aref-Eshghi2019] |
+| `"mlm"`         | Adapted from [@Aref-Eshghi2019] using multivariate linear methods to identify outliers |
+| `iso.forest`    | Adapted from [@Aref-Eshghi2019] using isolation forest to detect outliers |
+| `"mahdist.mcd"` | Adapted from [@Aref-Eshghi2019] using robust Mahalanobis distance with a custom threshold to identify outliers |
+
+### Methods from literature
+
+We called `"barbosa"` to the method described in [@Barbosa2018]. Briefly, the algorithm checks for each CpG, if the proband's measurement is an outlier. Then, it calls an epimutation to those regions where 3 contiguous CpGs are outliers and they are separated by less than 500 base pairs.
+
+```{r, message=FALSE}
+epi_brb <- epimutacions(methy, method = "barbosa")
 ```
 
-## Evaluate methods
+We called `"manova"` to the implementation of [@Aref-Eshghi2019]. This algorithm starts by running `bumphunter`, a method to detect DMRs [@Peters2015], comparing the proband versus the reference group. This first step results in a list of DMRs, regions where the proband has different methylation than the reference group. Then, each DMR is tested for outlier using a MANOVA (Multivariate ANalysis Of VAriance). DMRs are then subset based on the F-statistic magnitude and mean difference between proband and reference group DNA methylation.
+
+```{r, message=FALSE, warning=FALSE}
+epi_mvo <- epimutacions(methy, method = "manova")
+```
+
+### Altered methods from literature
+
+From [@Aref-Eshghi2019] implementation, we proposed three different approaches. These three approaches run the `bumphunter` step but test DMR for outliers using different approaches: (1) `"mlm"`, that uses a multivariate linear model; (2) `"isoforest"`, that uses isolation forest; and (3) `"mahdistmcd"`, which uses robust Mahalanobis distance.
+
+```{r, message=FALSE, warning=FALSE}
+epi_ml <- epimutacions(methy, method = "mlm")
+```
+
+```{r, message=FALSE, warning=FALSE}
+epi_iso <- epimutacions(methy, method = "isoforest")
+```
+
+```{r, message=FALSE, warning=FALSE}
+epi_mcd <- epimutacions(methy, method = "mahdistmcd")
+```
+
+## Description of the results
+
+The two methods from literature returned `r nrow(epi_brb)` and `r nrow(epi_mvo)` as we can see:
 
 ```{r}
-epi_brb <- epimutacions(dta, method = "barbosa", verbose = TRUE)
+nrow(epi_brb) # Results from Barbosa et. al. 2018
+nrow(epi_mvo) # Results from Aref-Eshghi et. al. 2019
 ```
 
-```{r}
-epi_mlm <- epimutacions(dta, method = "mlm", verbose = TRUE)
-```
+All the implemented methods returns the same `data.frame` although the meaning of some of the columns is slightly different. Let's see the one of the outputs from the two methods from literature:
 
 ```{r}
-epi_mvo <- epimutacions(dta, method = "manova", verbose = TRUE)
+rbind(epi_brb[1, ], epi_mvo[1, ])
 ```
 
-```{r}
-epi_mcd <- epimutacions(dta, method = "mahdist.mcd", verbose = TRUE)
-```
+The first column (`epi_id`) indicates a systematic name for each epimutation identified, while the second one (`sample`) povides the name of the sample containing that epimutation. The following three columns (`chromosome`, `start` and `end`) indicates the location of the epimutation. The column `sz` provides the window's size of the event and `cpg_n` the number of CpGs in it, which are reported in `cpg_ids`.
+
+The following three columns provide some statistic from the detection process:
+
+ 1. `outlier_score`:
+   * For method `manova` it provides the approximation to F-test and the Pillai score, separated by `/`.
+   * For method `mlm` it provides the approximation to F-test and the R2 of the model, separated by `/`.
+   * For method `isoforest` it provides the magnitude of the outlier score.
+   * For methods `berbosa` and `mahdistmcd` is is filled with `NA`.
+ 2. `outlier_significance`
+   * For methods `manova`, `mlm`, and `isoforest` it provides the p-value obtained from the model.
+   * For method `barbosa` and `mahdistmcd` is is filled with `NA`.
+ 3. `outlier_direction` indicates the direction of the outlier with "hypomethylation" and "hypermethylation"
+   * For `manova`, `mlm`, `isoforest`, and `mahdistmcd` it is computed from the values obtained from `bumphunter`.
+   * For `barbosa` it is computed from the location of the sample in the reference distribution (left vs. right outlier).
+
+## Visualization of epimutations
+
+
+
+# Acknowledgements
+
+We acknowledge the organizers of Europe BioHackathon 2020 for their support.

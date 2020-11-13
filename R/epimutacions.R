@@ -21,7 +21,7 @@ epimutacions <- function(methy, method, min_cpg = 3, verbose = TRUE) #, num.cpgs
 		betas <- minfi::getBeta(methy)
 		pd <- as.data.frame(SummarizedExperiment::colData(methy))
 		fd <- as.data.frame(SummarizedExperiment::rowRanges(methy))
-		rownames(fd) <- rownames(dta)
+		rownames(fd) <- rownames(betas)
 	} else if(class(methy) == "ExpressionSet") {
 		if(verbose) message("Input of type 'ExpressionSet")
 		betas <- Biobase::exprs(methy)
@@ -35,11 +35,13 @@ epimutacions <- function(methy, method, min_cpg = 3, verbose = TRUE) #, num.cpgs
 	}
 	
 	# Identify the method to be used
-	method <- charmatch(method, c("manova", "mlm", "iso.forest", "mahdist.mcd", "barbosa"))
-	method <- c("manova", "mlm", "iso.forest", "mahdist.mcd", "barbosa")[method]
-	if(method %in% c("iso.forest")) {
-		stop("Method not implemented yet")
-	}
+	avail <- c("manova", "mlm", "isoforest", "mahdistmcd", "barbosa")
+	method <- charmatch(method, avail)
+	method <- avail[method]
+	if(verbose) message("Selected epimutation detection method '", method, "'")
+	#if(method %in% c()) {
+	#	stop("Method not implemented yet")
+	#}
 	
 	# Identify cases and controls
 	ctr_sam <- rownames(pd)[pd$status == "control"]
@@ -47,10 +49,10 @@ epimutacions <- function(methy, method, min_cpg = 3, verbose = TRUE) #, num.cpgs
 	
 	# Differentiate between methods that required region detection that the ones
 	# that finds outliers to identify regions
-	if(method %in% c("manova", "mlm", "mahdist.mcd")) {
+	if(method %in% c("manova", "mlm", "mahdistmcd", "isoforest")) {
 		if(verbose) message(paste0("Selected method '", method, "' required of 'bumphunter'"))
 		
-		rst <- lapply(cas_sam, function(case) {
+		rst <- do.call(rbind, lapply(cas_sam, function(case) {
 			# Prepare model to be evaluated
 			pdi <- pd[ , "status", drop = FALSE]
 			pdi$case <- rownames(pdi) == case
@@ -70,52 +72,38 @@ epimutacions <- function(methy, method, min_cpg = 3, verbose = TRUE) #, num.cpgs
 				bump <- bumps[ii, ]
 				beta_bump <- betas_from_bump(bump, fd, betas)
 				
-				if(method == "mahdist.mcd") {
+				if(method == "mahdistmcd") {
 					dst <- epi_mahdistmcd(beta_bump, nsamp)
 					threshold <- sqrt(qchisq(p = 0.975, df = ncol(beta_bump)))
-					
-					# Find outliers according to the robust distance
 					outliers <- which(dst$statistic >= threshold)
-					
-					# Report if there are ourliers
-					bump$outlier <- case %in% outliers
-					bump$outlier_score <- NA
-					bump$outlier_significance <- NA
-					bump$outlier_direction <- NA
-					bump$CpG_ids <- paste(rownames(beta_bump), collapse = ",", sep = "")
-					bump$sample <- case
-					bump <- bump[bump$outlier, ]
-					bump[ , c("chr", "start", "end", "sz", "L", "CpG_ids", "outlier_score", "outlier_significance", "outlier_direction", "sample")]
+					return(res_mahdistmcd(case, bump, beta_bump, outliers))
 				} else if(method == "mlm") {
 					sts <- epi_mlm(beta_bump, model)
-					
-					bump$outlier_score <- paste0(sts[1], "/", sts[2])
-					bump$outlier_significance <- sts[3]
-					bump$outlier_direction <- ifelse(bump$value < 0, "hypomethylation", "hypermethylation")
-					bump$CpG_ids <- paste(rownames(beta_bump), collapse = ",", sep = "")
-					bump$sample <- case
-					bump[ , c("chr", "start", "end", "sz", "L", "CpG_ids", "outlier_score", "outlier_significance", "outlier_direction", "sample")]
+					return(res_mlm(bump, beta_bump, sts, case))
 				} else if(method == "manova") {
 					sts <- epi_manova(beta_bump, model, case)
-					
-					bump$outlier_score <- paste0(sts[[1]][1], "/", sts[[1]][2])
-					bump$outlier_significance <- sts[[1]][3]
-					bump$outlier_direction <- ifelse(bump$value < 0, "hypomethylation", "hypermethylation")
-					bump$CpG_ids <- paste(rownames(beta_bump), collapse = ",", sep = "")
-					bump$sample <- case
-					bump[ , c("chr", "start", "end", "sz", "L", "CpG_ids", "outlier_score", "outlier_significance", "outlier_direction", "sample")]
+					return(res_manova(bump, beta_bump, sts, case))
+				} else if(method == "isoforest") {
+					sts <- epi_isoforest(beta_bump, case)
+					return(res_isoforest(bump, beta_bump, sts, case))
 				}
 			}))
-		})
+		}))
 		
-		return(rst)
-	} else if(method == "barbosa") {
+		rst$epi_id <- sapply(seq_len(nrow(rst)), function(ii) paste0("epi_", method, "_", ii))
+		colnames(rst) <- c("chromosome", "start", "end", "sz", "cpg_n", "cpg_ids", 
+			"outlier_score", "outlier_significance", "outlier_direction", 
+			"sample", "epi_id")
+		rownames(rst) <- seq_len(nrow(rst))
+		
+		return(rst[ , c(11, 10, 1:9)])
+	} else { # if(method == "barbosa") {
 		# Compute reference statistics
 		if(verbose) message("Calculating statistics from reference distribution required by Barbosa et. al. 2019")
 		bctr_min <- apply(betas[ , ctr_sam], 1, min, na.rm = TRUE)
 		bctr_max <- apply(betas[ , ctr_sam], 1, max, na.rm = TRUE)
 		bctr_mean <- apply(betas[ , ctr_sam], 1, mean, na.rm = TRUE)
-		bctr_prc <- apply(betas[ , ctr_sam], 1, quantile, probs = c(0.01, 0.99), na.rm = TRUE)
+		bctr_prc <- suppressWarnings(apply(betas[ , ctr_sam], 1, quantile, probs = c(0.01, 0.99), na.rm = TRUE))
 		bctr_pmin <- bctr_prc[1, ]
 		bctr_pmax <- bctr_prc[2, ]
 		rm(bctr_prc)
@@ -129,6 +117,12 @@ epimutacions <- function(methy, method, min_cpg = 3, verbose = TRUE) #, num.cpgs
 			x
 		}))
 		
-		return(rst)
+		rst$epi_id <- sapply(seq_len(nrow(rst)), function(ii) paste0("epi_", method, "_", ii))
+		colnames(rst) <- c("chromosome", "start", "end", "sz", "cpg_n", "cpg_ids", 
+			   "outlier_score", "outlier_significance", "outlier_direction", 
+			   "sample", "epi_id")
+		rownames(rst) <- seq_len(nrow(rst))
+		
+		return(rst[ , c(11, 10, 1:9)])
 	}
 }

@@ -4,7 +4,7 @@
 \alias{epi_mlm}
 \title{Epimutation detection using Multivariate linear models}
 \usage{
-epi_mlm(mixture, model)
+epi_mlm(mixture, model, case)
 }
 \description{
 Epimutation detection using Multivariate linear models

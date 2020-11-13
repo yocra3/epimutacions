@@ -35,3 +35,15 @@ epi_mahdistmcd <- function(mixture, nsamp = c("best", "exact", "deterministic"))
 	
 	return(data.frame(ID = names(robust_dist), statistic = robust_dist))
 }
+
+
+res_mahdistmcd <- function(case, bump, beta_bump, outliers) {
+	bump$outlier <- case %in% outliers
+	bump$outlier_score <- NA
+	bump$outlier_significance <- NA
+	bump$outlier_direction <- NA
+	bump$CpG_ids <- paste(rownames(beta_bump), collapse = ",", sep = "")
+	bump$sample <- case
+	bump <- bump[bump$outlier, ]
+	bump[ , c("chr", "start", "end", "sz", "L", "CpG_ids", "outlier_score", "outlier_significance", "outlier_direction", "sample")]
+}
