@@ -5,16 +5,22 @@
 #' @param sample_ids (character vector) The column names in cases to compute 
 #' epimutations for.
 #' If missing, computes for all samples in cases.
-#' @param cases_as_controls (bool) If True, all remaining cases are added in controls.
-#' If False, they are ignored.
+#' @param cases_as_controls (bool) If True, for each case, all other cases are 
+#' added in controls. If False, they are ignored.
 #' @param args.bumphunter (list) Additional arguments to pass to 
 #' \link[bumphunter]{bumphunter}.
-#' @param num.cpgs (integer) Bumps containing less cpgs than num.cpgs are discarded.
-#' @param pValue.cutoff 
-#' @param fStat_min
-#' @param betaDiff_min
-#' @param outlier.score 
-#' @param nsamp 
+#' @param num.cpgs (integer) Epimutations containing fewer cpgs than num.cpgs 
+#' are discarded.
+#' @param pValue.cutoff (numeric) If method is "manova" or "mlm", only keep
+#' epimutations with a p-value inferior to pValue.cutoff. 
+#' @param fStat_min (numeric) If method is "manova", only keep
+#' epimutations with a F-statistic superior to fStat_min.
+#' @param betaDiff_min (numeric) If method is "manova", only keep epimutations
+#' with an absolute average regional methylation difference superior to betaDiff_min.
+#' @param outlier.score (numeric) If method is "iso.forest", only keep
+#' epimutations with an outlier_score superior to outlier.score.
+#' @param nsamp (string) If method is "Mahdist.MCD", the sample subsetting
+#' strategy: "best", "exact" or "deterministic". See \code{\link{epiMahdist.MCD}}.
 #' @param method (string) The outlier scoring method. Choose from 
 #' "manova", "mlm", "iso.forest", "Mahdist.MCD".
 #'
@@ -196,8 +202,6 @@ make_bumphunter_design <- function(set, sample_id){
 #'
 #' @return The object returned by \link[bumphunter]{bumphunter}, or if no bumps
 #' are found, a mock bumps object with zero rows returned by \code{empty_bumps}.
-#'
-#' @examples
 run_bumphunter <- function(set, design, ...){
 	if(class(set) == "GenomicRatioSet") {
 		bumps <- bumphunter::bumphunter(set, design, ...)$table
@@ -280,8 +284,6 @@ select_outlier_bumps <- function(bumps, method, pValue.cutoff, fStat_min, betaDi
 #' If False, return a full set of columns.
 #'
 #' @return A tibble dataframe where each row is an epimutation.
-#'
-#' @examples
 format_bumps <- function(bumps, set, sample, method, reduced){
 	df_out <- tibble::as_tibble(bumps)
 	df_out$sample <- df_out$outlier_method <- character(nrow(df_out))
