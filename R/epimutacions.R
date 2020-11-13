@@ -90,13 +90,13 @@ epimutacions <- function(methy, method, min_cpg = 3, verbose = TRUE) #, num.cpgs
 			}))
 		}))
 		
-		rst$epi_id <- sapply(seq_len(nrow(rst)), function(ii) paste0("epi_", method, "_", ii))
-		colnames(rst) <- c("chromosome", "start", "end", "sz", "cpg_n", "cpg_ids", 
-			"outlier_score", "outlier_significance", "outlier_direction", 
-			"sample", "epi_id")
-		rownames(rst) <- seq_len(nrow(rst))
-		
-		return(rst[ , c(11, 10, 1:9)])
+		# rst$epi_id <- sapply(seq_len(nrow(rst)), function(ii) paste0("epi_", method, "_", ii))
+		# colnames(rst) <- c("chromosome", "start", "end", "sz", "cpg_n", "cpg_ids", 
+		# 	"outlier_score", "outlier_significance", "outlier_direction", 
+		# 	"sample", "epi_id")
+		# rownames(rst) <- seq_len(nrow(rst))
+		# 
+		# return(rst[ , c(11, 10, 1:9)])
 	} else { # if(method == "barbosa") {
 		# Compute reference statistics
 		if(verbose) message("Calculating statistics from reference distribution required by Barbosa et. al. 2019")
@@ -117,12 +117,20 @@ epimutacions <- function(methy, method, min_cpg = 3, verbose = TRUE) #, num.cpgs
 			x
 		}))
 		
-		rst$epi_id <- sapply(seq_len(nrow(rst)), function(ii) paste0("epi_", method, "_", ii))
-		colnames(rst) <- c("chromosome", "start", "end", "sz", "cpg_n", "cpg_ids", 
-			   "outlier_score", "outlier_significance", "outlier_direction", 
-			   "sample", "epi_id")
-		rownames(rst) <- seq_len(nrow(rst))
-		
-		return(rst[ , c(11, 10, 1:9)])
+		# rst$epi_id <- sapply(seq_len(nrow(rst)), function(ii) paste0("epi_", method, "_", ii))
+		# colnames(rst) <- c("chromosome", "start", "end", "sz", "cpg_n", "cpg_ids", 
+		# 	   "outlier_score", "outlier_significance", "outlier_direction", 
+		# 	   "sample", "epi_id")
+		# rownames(rst) <- seq_len(nrow(rst))
+		# 
+		# return(rst[ , c(11, 10, 1:9)])
 	}
+	
+	rst$epi_id <- sapply(seq_len(nrow(rst)), function(ii) paste0("epi_", method, "_", ii))
+	colnames(rst) <- c("chromosome", "start", "end", "sz", "cpg_n", "cpg_ids", 
+					   "outlier_score", "outlier_significance", "outlier_direction", 
+					   "sample", "epi_id")
+	rownames(rst) <- seq_len(nrow(rst))
+	
+	return(rst[ , c(11, 10, 1:9)])
 }

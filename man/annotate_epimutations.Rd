@@ -23,7 +23,7 @@ GRCh37. Set build to \code{NULL} to use GRCh38.}
 }
 \value{
 Input object \code{epi_results} with additional columns with information about
-the genes or overlapping regulatory features. See \code{annotate_CpG} and \code{add_ENSEMBL_regulatory}
+the genes or overlapping regulatory features. See \code{annotate_cpg} and \code{add_ensemble_regulatory}
 for an in-depth description of these variables.
 }
 \description{

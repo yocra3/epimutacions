@@ -13,11 +13,13 @@ Imports:
 	mlm,
 	isotree,
 	robustbase,
-	rrcovHD
+	rrcovHD,
+	Gviz
 Suggests: 
     knitr,
     rmarkdown,
-    testthat
+    testthat,
+    IlluminaHumanMethylationEPICanno.ilm10b2.hg19
 Remotes: dgarrimar/mlm
 VignetteBuilder: knitr
 Encoding: UTF-8

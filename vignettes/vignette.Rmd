@@ -26,6 +26,8 @@ The following are the team members of the _Project #5_ and we consider this as a
 | Margherita | Mutarelli | 0000-0002-2168-5059 | Institute of Applied Sciences and Intelligent Systems (ISASI-CNR) | Validation |
 | Carlos | Ruiz-Arenas | 0000-0002-6014-3498 | Centro de Investigación Biomédica en Red de Enfermedades Raras (CIBERER), Barcelona, Spain; Universitat Pompeu Fabra (UPF), Barcelona, Spain | Reporting |
 
+The name of the package is `epimutacions`, that means epimutations in Catalan, a language from the north-eas of Spain.
+
 # Background
 
 Rare diseases are pathologies with low prevalence (< 1 per 2,000 people). Most of these pathologies have an onset during childhood and a strong genetic etiology. Consequently, rare disease diagnosis has relied on identifying genetic and genomic mutations that can cause the disease. Although these variants have provided a diagnosis for many patients and families, around 60% of the cases still remained un-diagnosed [@Lionel2018]. Aberrant methylation can be an underlying cause of un-diagnosed patients, either as a primary event (a.k.a. epimutation) or as a functional consequence of chromatin dysregulation by genetic or environmental agents (a.k.a. episignature). Epimutations are the cause of some rare
@@ -85,13 +87,13 @@ The `epimutacions` package includes 5 methods to detect epimutations. Two of the
 
 We called `"barbosa"` to the method described in [@Barbosa2018]. Briefly, the algorithm checks for each CpG, if the proband's measurement is an outlier. Then, it calls an epimutation to those regions where 3 contiguous CpGs are outliers and they are separated by less than 500 base pairs.
 
-```{r, message=FALSE}
+```{r, epi_brb, message=FALSE}
 epi_brb <- epimutacions(methy, method = "barbosa")
 ```
 
 We called `"manova"` to the implementation of [@Aref-Eshghi2019]. This algorithm starts by running `bumphunter`, a method to detect DMRs [@Peters2015], comparing the proband versus the reference group. This first step results in a list of DMRs, regions where the proband has different methylation than the reference group. Then, each DMR is tested for outlier using a MANOVA (Multivariate ANalysis Of VAriance). DMRs are then subset based on the F-statistic magnitude and mean difference between proband and reference group DNA methylation.
 
-```{r, message=FALSE, warning=FALSE}
+```{r, epi_mvo, message=FALSE, warning=FALSE}
 epi_mvo <- epimutacions(methy, method = "manova")
 ```
 
@@ -99,15 +101,15 @@ epi_mvo <- epimutacions(methy, method = "manova")
 
 From [@Aref-Eshghi2019] implementation, we proposed three different approaches. These three approaches run the `bumphunter` step but test DMR for outliers using different approaches: (1) `"mlm"`, that uses a multivariate linear model; (2) `"isoforest"`, that uses isolation forest; and (3) `"mahdistmcd"`, which uses robust Mahalanobis distance.
 
-```{r, message=FALSE, warning=FALSE}
+```{r, epi_mlm, message=FALSE, warning=FALSE}
 epi_ml <- epimutacions(methy, method = "mlm")
 ```
 
-```{r, message=FALSE, warning=FALSE}
+```{r, epi_iso, message=FALSE, warning=FALSE}
 epi_iso <- epimutacions(methy, method = "isoforest")
 ```
 
-```{r, message=FALSE, warning=FALSE}
+```{r, epi_mcd, message=FALSE, warning=FALSE}
 epi_mcd <- epimutacions(methy, method = "mahdistmcd")
 ```
 
@@ -115,14 +117,14 @@ epi_mcd <- epimutacions(methy, method = "mahdistmcd")
 
 The two methods from literature returned `r nrow(epi_brb)` and `r nrow(epi_mvo)` as we can see:
 
-```{r}
+```{r, show_brb_mvo_1}
 nrow(epi_brb) # Results from Barbosa et. al. 2018
 nrow(epi_mvo) # Results from Aref-Eshghi et. al. 2019
 ```
 
 All the implemented methods returns the same `data.frame` although the meaning of some of the columns is slightly different. Let's see the one of the outputs from the two methods from literature:
 
-```{r}
+```{r, show_brb_mvo_2}
 rbind(epi_brb[1, ], epi_mvo[1, ])
 ```
 
@@ -142,9 +144,20 @@ The following three columns provide some statistic from the detection process:
    * For `manova`, `mlm`, `isoforest`, and `mahdistmcd` it is computed from the values obtained from `bumphunter`.
    * For `barbosa` it is computed from the location of the sample in the reference distribution (left vs. right outlier).
 
+The `epimutacions` package also includes a function dedicated to enrich the epimutations identified by the previously described methods:
+
+```{r, ann, message=FALSE}
+rst_mvo <- annotate_epimutations(epi_mvo)
+rst_mvo[1:2, c(1, 12:14)]
+```
+
 ## Visualization of epimutations
 
+A visualization method is in order to locate the epimutations along the genome. This can be archived by using the function `plot_epi`, already included in `epimutacions`.
 
+```{r, plot_mvo}
+plot_epi(epi_mvo, "manova", "GSM2562701", "chr19")
+```
 
 # Acknowledgements
 
