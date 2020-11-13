@@ -19,7 +19,7 @@ annotate_epimutations(
 \item{build}{Genomic build where the epimutations are mapped. By default, it is
 GRCh37. Set build to \code{NULL} to use GRCh38.}
 
-\item{...}{Further arguments passed to \code{annotate_CpG}}
+\item{...}{Further arguments passed to \code{annotate_cpg}}
 }
 \value{
 Input object \code{epi_results} with additional columns with information about

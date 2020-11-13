@@ -26,7 +26,7 @@ The following are the team members of the _Project #5_ and we consider this as a
 | Margherita | Mutarelli | 0000-0002-2168-5059 | Institute of Applied Sciences and Intelligent Systems (ISASI-CNR) | Validation |
 | Carlos | Ruiz-Arenas | 0000-0002-6014-3498 | Centro de Investigación Biomédica en Red de Enfermedades Raras (CIBERER), Barcelona, Spain; Universitat Pompeu Fabra (UPF), Barcelona, Spain | Reporting |
 
-The name of the package is `epimutacions`, that means epimutations in Catalan, a language from the north-eas of Spain.
+The name of the package is `epimutacions` (prononunced `ɛ pi mu ta 'sj ons`) which means epimutations in Catalan, a language from the north-east of Spain.
 
 # Background
 
