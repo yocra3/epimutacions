@@ -16,7 +16,7 @@
 #' @param outlier.score 
 #' @param nsamp 
 #' @param method (string) The outlier scoring method. Choose from 
-#' "manova", "mlm", "iso.forest", "Mahdist.MCD".
+#' \code{"manova"}, \code{"mlm"}, \code{"iso.forest"}, \code{"Mahdist.MCD"}.
 #'
 #' @return A tibble of epimutation regions for sample_id.
 #' \describe{
@@ -229,7 +229,7 @@ compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp
     if(method == "manova") {
         manova_has_enough_samples <- nrow(betas) >= ncol(betas) + 2
       if(manova_has_enough_samples) {
-          stats_manova <- epi_manova(betas, model, sample)
+          stats_manova <- epiManova(betas, model, sample)
           bumps$outlier_score[i] <- stats_manova["approx F"]
           bumps$outlier_significance[i] <- stats_manova["Pr(>F)"]
           bumps$beta_diff[i] <- stats_manova["beta_mean_abs_diff"]

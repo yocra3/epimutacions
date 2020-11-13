@@ -15,7 +15,7 @@
 #' }
 #' @export
 #' 
-epi_manova <- function(betas, model, sample_id){
+epiManova <- function(betas, model, sample_id){
   
   # Fit the manova model
   mod <- manova(betas ~ model)
