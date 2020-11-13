@@ -1,17 +1,18 @@
 #' Epimutation detection based on Outlier Detection with Robust Mahalanobis
 #' 
 #' The implementation of the method here is based on the discusion in this
-#' thred of StakOverflow:
+#' thread of StakOverflow:
 #' https://stats.stackexchange.com/questions/137263/multivariate-outlier-detection-with-robust-mahalanobis
 #' 
 #' @param betas matrix A matrix with the beta values of controls with a single 
 #' case (proband) to be tested for outlier with CpGs as rows and samples 
 #' (controls + 1 case ) as columns.
 #' @param nsamp character/integer Number of subsets used for initial estimates.
-#' It can take a stratgey ("best", "exact", or "deterministic") or an exact
+#' It can take a strategy ("best", "exact", or "deterministic") or an exact
 #' number.
+#' @param sample (string) The sample column name in betas to run the outlier detection on. 
 #' @export
-epiMahdist.MCD <- function(betas, nsamp = c("best", "exact", "deterministic")) {
+epiMahdist.MCD <- function(betas, nsamp = c("best", "exact", "deterministic"), sample) {
 	if(is.null(betas)) {
 		stop("'betas' data frame must be introduced")
 	}
