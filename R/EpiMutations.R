@@ -231,11 +231,6 @@ run_bumphunter <- function(set, design, ...){
 	return(bumps)
 }
 
-filter_bumps <- function(bumps, min_cpgs_per_bump){
-  bumps <- subset(bumps, L >= min_cpgs_per_bump)
-  return(bumps)
-}
-
 compute_bump_outlier_scores <- function(set, bumps, stats, sample, model, args.stats){
   bumps$outlier_score <- bumps$outlier_significance <- rep(NA_real_, nrow(bumps))
   bumps$beta_diff <- rep(NA_real_, nrow(bumps))
@@ -262,26 +257,6 @@ compute_bump_outlier_scores <- function(set, bumps, stats, sample, model, args.s
   }
   
   return(bumps)
-}
-
-select_outlier_bumps <- function(bumps, stats, pValue.cutoff, fStat_min, betaDiff_min, outlier.score){
-
-    if(stats == "manova"){
-        outliers <- subset(
-            bumps,
-            outlier_score >= fStat_min &
-                beta_diff >= betaDiff_min &
-                outlier_significance < pValue.cutoff 
-        )
-    } else if(stats == "mlm"){
-        outliers <- subset(bumps, outlier_significance < pValue.cutoff)
-    } else if(stats == "iso.forest"){
-        outliers <- subset(bumps, outlier_score > outlier.score)
-    } else if(stats == "Mahdist.MCD"){
-        outliers <- subset(bumps, outlier_score == TRUE)
-    }
-  
-  return(outliers)
 }
 
 #' Convert bumps object to a tibble with additional formatting.
