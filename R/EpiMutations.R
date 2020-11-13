@@ -258,7 +258,7 @@ select_outlier_bumps <- function(bumps, method, pValue.cutoff, fStat_min, betaDi
         outliers <- subset(
             bumps,
             outlier_score >= fStat_min &
-                beta_diff >= betaDiff_min &
+                abs(beta_diff) >= betaDiff_min &
                 outlier_significance < pValue.cutoff 
         )
     } else if(method == "mlm"){
