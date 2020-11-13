@@ -227,16 +227,16 @@ filter_bumps <- function(bumps, min_cpgs_per_bump){
 
 compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp){
   bumps$outlier_score <- bumps$outlier_significance <- rep(NA_real_, nrow(bumps))
-  if(method == "manova") bumps$beta_diff <- rep(NA_real_, nrow(bumps))
+  bumps$beta_diff <- rep(NA_real_, nrow(bumps))
   for(i in seq_len(nrow(bumps))) {
     betas <- get_betas(bumps[i, ], set)
+    bumps$beta_diff[i] <- ave_beta_case_minus_controls(betas, sample)
     if(method == "manova") {
         manova_has_enough_samples <- nrow(betas) >= ncol(betas) + 2
       if(manova_has_enough_samples) {
-          stats_manova <- epi_manova(betas, model, sample)
+          stats_manova <- epi_manova(betas, model)
           bumps$outlier_score[i] <- stats_manova["approx F"]
           bumps$outlier_significance[i] <- stats_manova["Pr(>F)"]
-          bumps$beta_diff[i] <- stats_manova["beta_mean_abs_diff"]
       }
     } else if(method == "mlm") {
         stats_mlm <- epiMLM(betas, model)
@@ -301,7 +301,7 @@ format_bumps <- function(bumps, set, sample, method, reduced){
 	)
 	if(reduced){
 		reduced_col <- c("sample", "chr", "start", "end", "length", "n_cpgs", "cpg_ids",
-		                 "outlier_method", "outlier_score", "outlier_significance")
+		                 "beta_diff", "outlier_method", "outlier_score", "outlier_significance")
 		df_out <- df_out[, reduced_col]
 	}
 	return(df_out)
