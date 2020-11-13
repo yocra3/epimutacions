@@ -1,9 +1,9 @@
 ---
-title: "Detection of epimutations with state of the art statistics methods in methylation data"
+title: "Detection of epimutations with state of the art methods in methylation data"
 output: rmarkdown::html_vignette
 bibliography: refs.bib
 vignette: >
-  %\VignetteIndexEntry{Detection of epimutations with state of the art statistics methods in methylation data}
+  %\VignetteIndexEntry{Detection of epimutations with state of the art methods in methylation data}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
@@ -155,7 +155,7 @@ rst_mvo[1:2, c(1, 12:14)]
 
 A visualization method is in order to locate the epimutations along the genome. This can be archived by using the function `plot_epi`, already included in `epimutacions`.
 
-```{r, plot_mvo}
+```{r, plot_mvo, fig.width=6}
 plot_epi(epi_mvo, "manova", "GSM2562701", "chr19")
 ```
 
