@@ -12,17 +12,10 @@
 #' number.
 #' @param sample (string) The sample column name in betas to run the outlier detection on. 
 #' @export
-epiMahdist.MCD <- function(betas, nsamp = c("best", "exact", "deterministic"), sample) {
+epiMahdist.MCD <- function(betas, sample, nsamp = "best") {
 	if(is.null(betas)) {
 		stop("'betas' data frame must be introduced")
 	}
-	
-	val <- match(nsamp, c("best", "exact", "deterministic"))
-	if(length(val) != 1) {
-		stop("nsamp shuld be 'best', 'exact', 'deterministic'")
-	}
-	nsamp <- c("best", "exact", "deterministic")[val]
-	
 	if(is.null(sample) | length(sample)!= 1) {
 		stop("One 'sample' with suspected rare disease must be introduced")
 	}

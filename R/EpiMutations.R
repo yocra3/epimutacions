@@ -7,20 +7,19 @@
 #' If missing, computes for all samples in cases.
 #' @param cases_as_controls (bool) If True, all remaining cases are added in controls.
 #' If False, they are ignored.
-#' @param args.bumphunter (list) Additional arguments to pass to 
-#' \link[bumphunter]{bumphunter}.
-#' @param num.cpgs (integer) Bumps containing less cpgs than num.cpgs are discarded.
-#' @param pValue.cutoff 
-#' @param fStat_min
-#' @param betaDiff_min
-#' @param outlier.score 
-#' @param nsamp 
-#' @param method (string) The outlier scoring method. Choose from 
+#' @param stats (string) The epimutation statistical scoring method. Choose from 
 #' "manova", "mlm", "iso.forest", "Mahdist.MCD".
 #' @param epis_kept (string) The epimutation filtering criteria. Either
 #' "all", "aref-eshghi" or "barbosa". See \code{\link{filter_epis}}.
+#' @param reduced_output (bool) If True (default), return the columns specified
+#' in \code{Value}. If False, add also the columns returned by
+#' \link[bumphunter]{bumphunter}.
+#' @param args.bumphunter (list) Additional arguments to pass to 
+#' \link[bumphunter]{bumphunter}.
+#' @param args.stats (list) Additional arguments to pass to the statistical
+#' scoring method called by the \code{stats} argument.
 #'
-#' @return A tibble of epimutation regions for sample_id.
+#' @return A tibble of epimutation regions for sample_ids.
 #' \describe{
 #' \item{sample}{(string) Sample_id in colnames(cases)}
 #' \item{chr}{(string) Chromosome}
@@ -29,6 +28,8 @@
 #' \item{length}{(integer) Region length on chromosome}
 #' \item{n_cpgs}{(integer) Number of CpGs spanned by region}
 #' \item{cpg_ids}{(string) Comma-separated CpG_ids in rownames(cases) spanned by region}
+#' \item{beta_diff}{(numeric) Average regional methylation difference between
+#' case and controls.}
 #' \item{outlier_method}{(string) The outlier scoring method. Either
 #' "manova", "mlm", "iso.forest" or "Mahdist.MCD".}
 #' \item{outlier_score}{(numeric) The outlier score. A F-statistic for methods 
@@ -47,31 +48,24 @@ epimutations <- function(
   controls,
   sample_ids,
   cases_as_controls = T,
-  args.bumphunter = list(cutoff=0.1),
-  num.cpgs = 3,
-  pValue.cutoff = 0.01,
-  fStat_min = 20,
-  betaDiff_min = 0.2,
-  outlier.score = 0.5,
-  nsamp = "deterministic",
-  method = "manova",
+  stats = "manova",
+  epis_kept = "all",
   reduced_output = T,
-  epis_kept = "all"
+  args.bumphunter = list(cutoff=0.1),
+  args.stats = list()
 ) {
   
-  check_params(cases, controls, method, cases_as_controls, sample_ids)
+  check_params(cases, controls, stats, cases_as_controls, sample_ids)
 
   set <- set_concat(cases, controls)
   
-  if(missing(sample_ids)){
-    sample_ids <- colnames(cases)
-  }
+  if(missing(sample_ids)) sample_ids <- colnames(cases)
   epis <- lapply(
     sample_ids,
     function(sample_id) {
       epimutations_per_sample(
-        set, sample_id, cases_as_controls, args.bumphunter, num.cpgs,
-        pValue.cutoff, fStat_min, betaDiff_min, outlier.score, nsamp, method, reduced_output
+        set, sample_id, cases_as_controls, stats, reduced_output,
+        args.bumphunter, args.stats
       )
     }
   )
@@ -94,7 +88,6 @@ epimutations <- function(
 #' @examples
 filter_epis <- function(epis, epis_kept){
 	if(epis_kept == "aref-eshghi"){
-		### implement aref-eshghi filtering criteria
 		epis <- subset(epis,
 			n_cpgs >= 3 &
 				outlier_score >= 20 &
@@ -110,15 +103,10 @@ epimutations_per_sample <- function(
   set,
   sample_id,
   cases_as_controls = T,
+  stats = "manova",
+  reduced_output = T,
   args.bumphunter = list(cutoff=0.1),
-  num.cpgs = 3,
-  pValue.cutoff = 0.01,
-  fStat_min = 20,
-  betaDiff_min = 0.2,
-  outlier.score = 0.5,
-  nsamp = "deterministic",
-  method = "manova",
-  reduced_output = T
+  args.stats = list()
 ){
   set <- filter_set(set, sample_id, cases_as_controls)
   
@@ -126,15 +114,15 @@ epimutations_per_sample <- function(
   bumps <- do.call(run_bumphunter,
                    c(list(set=set, design=design), args.bumphunter))
   
-  bumps <- compute_bump_outlier_scores(set, bumps, method, sample_id, design, nsamp)
+  bumps <- compute_bump_outlier_scores(set, bumps, stats, sample_id, design, args.stats)
   
-  epi <- format_bumps(bumps, set, sample_id, method, reduced_output)
+  epi <- format_bumps(bumps, set, sample_id, stats, reduced_output)
   
   return(epi)
 }
 
 
-check_params <- function(cases, controls, method, cases_as_controls, sample_ids){
+check_params <- function(cases, controls, stats, cases_as_controls, sample_ids){
 
   if(missing(cases)) {
     stop("Cases argument is missing.")
@@ -157,19 +145,19 @@ check_params <- function(cases, controls, method, cases_as_controls, sample_ids)
   if(!missing(controls) && ncol(controls) < 2) {
     stop("Controls must contain at least 2 samples.")
   }
-  if(length(method) != 1) {
-    stop("Only one method can be chosen at a time.")
+  if(length(stats) != 1) {
+    stop("Only one statistical method can be chosen at a time.")
   }
-  if(!method %in% c("manova", "mlm", "iso.forest", "Mahdist.MCD")) {
-    stop("Method must be 'manova', 'mlm','iso.forest','Mahdist.MCD'")  
+  if(!stats %in% c("manova", "mlm", "iso.forest", "Mahdist.MCD")) {
+    stop("Statistical method must be 'manova', 'mlm','iso.forest','Mahdist.MCD'")  
   }
   if(!missing(sample_ids) && any(!sample_ids %in% colnames(cases))){
     stop("Sample_ids must match column names in the cases object.")  
   }
     n_controls <- ifelse(missing(controls), 0, ncol(controls))
     if(cases_as_controls) n_controls <- n_controls + ncol(cases) - 1
-    if(method == "manova" && n_controls < 10){
-        warning("At least 10 control samples are recommended for the manova method.")
+    if(stats == "manova" && n_controls < 10){
+        warning("At least 10 control samples are recommended for manova statistics.")
     }
 }
 
@@ -248,12 +236,12 @@ filter_bumps <- function(bumps, min_cpgs_per_bump){
   return(bumps)
 }
 
-compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp){
+compute_bump_outlier_scores <- function(set, bumps, stats, sample, model, args.stats){
   bumps$outlier_score <- bumps$outlier_significance <- rep(NA_real_, nrow(bumps))
   bumps$beta_diff <- rep(NA_real_, nrow(bumps))
   for(i in seq_len(nrow(bumps))) {
     betas <- get_betas(bumps[i, ], set)
-    if(method == "manova") {
+    if(stats == "manova") {
         manova_has_enough_samples <- nrow(betas) >= ncol(betas) + 2
       if(manova_has_enough_samples) {
           stats_manova <- epi_manova(betas, model, sample)
@@ -261,34 +249,35 @@ compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp
           bumps$outlier_significance[i] <- stats_manova["Pr(>F)"]
           bumps$beta_diff[i] <- stats_manova["beta_mean_abs_diff"]
       }
-    } else if(method == "mlm") {
+    } else if(stats == "mlm") {
         stats_mlm <- epiMLM(betas, model)
       bumps$outlier_score[i] <- stats_mlm["F value"]
       bumps$outlier_significance[i] <- stats_mlm["Pr(>F)"]
-    } else if(method == "iso.forest") {
+    } else if(stats == "iso.forest") {
       bumps$outlier_score[i] <- epiIsolationForest(betas, sample)
-    } else if(method == "Mahdist.MCD") {
-      bumps$outlier_score[i] <- epiMahdist.MCD(betas, nsamp, sample)
+    } else if(stats == "Mahdist.MCD") {
+    	bumps$outlier_score[i] <- do.call(
+    		epiMahdist.MCD, c(list(betas=betas, sample=sample), args.stats))
     }
   }
   
   return(bumps)
 }
 
-select_outlier_bumps <- function(bumps, method, pValue.cutoff, fStat_min, betaDiff_min, outlier.score){
+select_outlier_bumps <- function(bumps, stats, pValue.cutoff, fStat_min, betaDiff_min, outlier.score){
 
-    if(method == "manova"){
+    if(stats == "manova"){
         outliers <- subset(
             bumps,
             outlier_score >= fStat_min &
                 beta_diff >= betaDiff_min &
                 outlier_significance < pValue.cutoff 
         )
-    } else if(method == "mlm"){
+    } else if(stats == "mlm"){
         outliers <- subset(bumps, outlier_significance < pValue.cutoff)
-    } else if(method == "iso.forest"){
+    } else if(stats == "iso.forest"){
         outliers <- subset(bumps, outlier_score > outlier.score)
-    } else if(method == "Mahdist.MCD"){
+    } else if(stats == "Mahdist.MCD"){
         outliers <- subset(bumps, outlier_score == TRUE)
     }
   
@@ -309,12 +298,12 @@ select_outlier_bumps <- function(bumps, method, pValue.cutoff, fStat_min, betaDi
 #' @return A tibble dataframe where each row is an epimutation.
 #'
 #' @examples
-format_bumps <- function(bumps, set, sample, method, reduced){
+format_bumps <- function(bumps, set, sample, stats, reduced){
 	df_out <- tibble::as_tibble(bumps)
 	df_out$sample <- df_out$outlier_method <- character(nrow(df_out))
 	if(nrow(bumps) > 0){
 		df_out$sample <- sample
-		df_out$outlier_method <- method
+		df_out$outlier_method <- stats
 	}
 	df_out$length <- df_out$end - df_out$start + 1
 	df_out$n_cpgs <- df_out$indexEnd - df_out$indexStart + 1

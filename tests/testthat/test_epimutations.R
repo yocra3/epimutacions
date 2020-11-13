@@ -44,24 +44,24 @@ test_that("returns zero rows if bumphunter finds no bumps", {
 	expect_equal(actual, 0)
 })
 
-test_that("returns >= 1 epimutation for all methods with toy genomicratioset", {
+test_that("returns >= 1 epimutation for all stats with toy genomicratioset", {
 	data("genomicratioset")
-	expect_gte(nrow(epimutations(cases = genomicratioset, method = "manova")), 1)
-	expect_gte(nrow(epimutations(cases = genomicratioset, method = "mlm")), 1)
-	expect_gte(nrow(epimutations(cases = genomicratioset, method = "iso.forest")), 1)
-	expect_gte(nrow(epimutations(cases = genomicratioset, method = "Mahdist.MCD")), 1)
+	expect_gte(nrow(epimutations(cases = genomicratioset, stats = "manova")), 1)
+	expect_gte(nrow(epimutations(cases = genomicratioset, stats = "mlm")), 1)
+	expect_gte(nrow(epimutations(cases = genomicratioset, stats = "iso.forest")), 1)
+	expect_gte(nrow(epimutations(cases = genomicratioset, stats = "Mahdist.MCD")), 1)
 })
 
 test_that("returns >= 1 epimutation for aref-eshghi with toy genomicratioset", {
 	data("genomicratioset")
-	expect_gte(nrow(epimutations(cases = genomicratioset, method = "manova",
+	expect_gte(nrow(epimutations(cases = genomicratioset, stats = "manova",
 								 epis_kept="aref-eshghi")), 1)
 })
 
 
-test_that("raises if all post-bumphunter methods are specified", {
+test_that("raises if all post-bumphunter stats are specified", {
 	data("genomicratioset")
-	expect_error(epimutations(cases = genomicratioset, method=c("manova", "mlm", "iso.forest", "Mahdist.MCD"), "Method must be 'manova', 'mlm','iso.forest','Mahdist.MCD'"))
+	expect_error(epimutations(cases = genomicratioset, stats=c("manova", "mlm", "iso.forest", "Mahdist.MCD"), "stats must be 'manova', 'mlm','iso.forest','Mahdist.MCD'"))
 })
 
 
@@ -84,10 +84,10 @@ test_that("raises if cases are in controls", {
 
 test_that("raises num cpgs is 0", {
 	data("genomicratioset")
-	expect_error(epimutations(cases = genomicratioset, num.cpgs = 0, method = "manova"), "minimum number of cpgs must be 3")
-	expect_error(epimutations(cases = genomicratioset, num.cpgs = 0, method = "mlm"), "minimum number of cpgs must be 3")
-	expect_error(epimutations(cases = genomicratioset, num.cpgs = 0, method = "iso.forest"), "minimum number of cpgs must be 3")
-	expect_error(epimutations(cases = genomicratioset, num.cpgs = 0, method = "Mahdist.MCD"), "minimum number of cpgs must be 3")
+	expect_error(epimutations(cases = genomicratioset, num.cpgs = 0, stats = "manova"), "minimum number of cpgs must be 3")
+	expect_error(epimutations(cases = genomicratioset, num.cpgs = 0, stats = "mlm"), "minimum number of cpgs must be 3")
+	expect_error(epimutations(cases = genomicratioset, num.cpgs = 0, stats = "iso.forest"), "minimum number of cpgs must be 3")
+	expect_error(epimutations(cases = genomicratioset, num.cpgs = 0, stats = "Mahdist.MCD"), "minimum number of cpgs must be 3")
 })
 
 
