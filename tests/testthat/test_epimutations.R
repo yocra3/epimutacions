@@ -43,8 +43,10 @@ test_that("returns zero rows if bumphunter finds no bumps", {
 	expect_equal(actual, 0)
 })
 
-test_that("returns with toy genomicratioset", {
+test_that("returns >= 1 epimutation for all methods with toy genomicratioset", {
 	data("genomicratioset")
-	out <- epimutations(cases = genomicratioset, num.cpgs = 3, method = "iso.forest")
-	expect_equal(nrow(out), 0)
+	expect_gte(nrow(epimutations(cases = genomicratioset, method = "manova")), 1)
+	expect_gte(nrow(epimutations(cases = genomicratioset, method = "mlm")), 1)
+	expect_gte(nrow(epimutations(cases = genomicratioset, method = "iso.forest")), 1)
+	expect_gte(nrow(epimutations(cases = genomicratioset, method = "Mahdist.MCD")), 1)
 })
