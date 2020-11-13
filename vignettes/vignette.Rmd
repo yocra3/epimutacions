@@ -16,7 +16,7 @@ The following are the team members of the _Project #5_ and we consider this as a
 
 | Name | Surname | ORCID | Affiliation | Team |
 |:-----|:--------|:-----:|:------------|:-----|
-| Leire | Abarrategui | 0000-0002-1175-038X | Faculty of Medical Sciences, Newcastle University, Newcastle-Upon-Tyne, UK	ISGlobal; ISGlobal, Barcelona Institute for Global Health, Barcelona, Spain | Development |
+| Leire | Abarrategui | 0000-0002-1175-038X | Faculty of Medical Sciences, Newcastle University, Newcastle-Upon-Tyne, UK; ISGlobal, Barcelona Institute for Global Health, Barcelona, Spain | Development |
 | Lordstrong | Akano | 0000-0002-1404-0295 | College of Medicine, University of Ibadan | Development |
 | James | Baye | 0000-0002-0078-3688 | Wellcome/MRC Cambridge Stem Cell Institute, University of Cambridge, Cambridge CB2 0AW, UK; Department of Physics, University of Cambridge, Cambridge CB2 3DY, UK | Development |
 | Alejandro | Caceres | - | ISGlobal, Barcelona Institute for Global Health, Dr Aiguader 88, 08003 Barcelona, Spain; Centro de Investigación Biomédica en Red en Epidemiología y Salud Pública (CIBERESP), Madrid, Spain | Development |
@@ -155,7 +155,7 @@ rst_mvo[1:2, c(1, 12:14)]
 
 A visualization method is in order to locate the epimutations along the genome. This can be archived by using the function `plot_epi`, already included in `epimutacions`.
 
-```{r, plot_mvo, fig.width=6}
+```{r, plot_mvo, fig.width=7}
 plot_epi(epi_mvo, "manova", "GSM2562701", "chr19")
 ```
 
