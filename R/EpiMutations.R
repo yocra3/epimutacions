@@ -17,6 +17,8 @@
 #' @param nsamp 
 #' @param method (string) The outlier scoring method. Choose from 
 #' "manova", "mlm", "iso.forest", "Mahdist.MCD".
+#' @param epis_kept (string) The epimutation filtering criteria. Either
+#' "all", "aref-eshghi" or "barbosa". See \code{\link{filter_epis}}.
 #'
 #' @return A tibble of epimutation regions for sample_id.
 #' \describe{
@@ -53,7 +55,8 @@ epimutations <- function(
   outlier.score = 0.5,
   nsamp = "deterministic",
   method = "manova",
-  reduced_output = T
+  reduced_output = T,
+  epis_kept = "all"
 ) {
   
   check_params(cases, controls, method, cases_as_controls, sample_ids)
@@ -74,7 +77,28 @@ epimutations <- function(
   )
   epis <- do.call(rbind, epis)
   
+  epis <- filter_epis(epis, epis_kept)
+  
   return(epis)
+}
+
+#' Filter epimutations.
+#'
+#' @param epis (data.frame) A dataframe of epimutations.
+#' @param epis_kept (string) The epimutation filtering criteria. Either
+#' "all", "aref-eshghi" or "barbosa".
+#'
+#' @return A dataframe of epimutations.
+#' @export
+#'
+#' @examples
+filter_epis <- function(epis, epis_kept){
+	if(epis_kept == "aref-eshghi"){
+		### implement aref-eshghi filtering criteria
+	} else if(epis_kept == "barbosa"){
+		### implement barbosa filtering criteria
+	}
+	return(epis)
 }
 
 epimutations_per_sample <- function(
