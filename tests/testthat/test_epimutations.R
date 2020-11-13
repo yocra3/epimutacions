@@ -52,6 +52,11 @@ test_that("returns >= 1 epimutation for all methods with toy genomicratioset", {
 	expect_gte(nrow(epimutations(cases = genomicratioset, method = "Mahdist.MCD")), 1)
 })
 
+test_that("returns >= 1 epimutation for aref-eshghi with toy genomicratioset", {
+	data("genomicratioset")
+	expect_gte(nrow(epimutations(cases = genomicratioset, method = "manova",
+								 epis_kept="aref-eshghi")), 1)
+})
 
 
 test_that("raises if all post-bumphunter methods are specified", {

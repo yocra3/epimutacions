@@ -95,6 +95,11 @@ epimutations <- function(
 filter_epis <- function(epis, epis_kept){
 	if(epis_kept == "aref-eshghi"){
 		### implement aref-eshghi filtering criteria
+		epis <- subset(epis,
+			n_cpgs >= 3 &
+				outlier_score >= 20 &
+				( outlier_score >= 40 | abs(beta_diff) >= 0.2)
+		)
 	} else if(epis_kept == "barbosa"){
 		### implement barbosa filtering criteria
 	}
@@ -121,9 +126,7 @@ epimutations_per_sample <- function(
   bumps <- do.call(run_bumphunter,
                    c(list(set=set, design=design), args.bumphunter))
   
-  bumps <- filter_bumps(bumps, min_cpgs_per_bump=num.cpgs)
   bumps <- compute_bump_outlier_scores(set, bumps, method, sample_id, design, nsamp)
-  bumps <- select_outlier_bumps(bumps, method, pValue.cutoff, fStat_min, betaDiff_min, outlier.score)
   
   epi <- format_bumps(bumps, set, sample_id, method, reduced_output)
   
@@ -247,7 +250,7 @@ filter_bumps <- function(bumps, min_cpgs_per_bump){
 
 compute_bump_outlier_scores <- function(set, bumps, method, sample, model, nsamp){
   bumps$outlier_score <- bumps$outlier_significance <- rep(NA_real_, nrow(bumps))
-  if(method == "manova") bumps$beta_diff <- rep(NA_real_, nrow(bumps))
+  bumps$beta_diff <- rep(NA_real_, nrow(bumps))
   for(i in seq_len(nrow(bumps))) {
     betas <- get_betas(bumps[i, ], set)
     if(method == "manova") {
@@ -323,7 +326,7 @@ format_bumps <- function(bumps, set, sample, method, reduced){
 	)
 	if(reduced){
 		reduced_col <- c("sample", "chr", "start", "end", "length", "n_cpgs", "cpg_ids",
-		                 "outlier_method", "outlier_score", "outlier_significance")
+		                 "beta_diff", "outlier_method", "outlier_score", "outlier_significance")
 		df_out <- df_out[, reduced_col]
 	}
 	return(df_out)
