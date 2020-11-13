@@ -1,24 +1,30 @@
+#' Identifies methylated outlier regions using isolation forest
+#' 
+#' This function identifies regions with CpGs being outliers 
+#' 
+#' @param betas Beta values matrix
+#' @param Sample_id Character vector specifying the name of the sample
+#' to compute epimutations
+#' @return The outlier score for the given case sample
 #' @export
-epiIsolationForest<-function(beta.values, disease.sample.name)
+#' 
+#'  @export
+epiIsolationForest<-function(betas, sample_id)
 {
-  if(is.null(beta.values))
-  {
-   stop("'beta.values' data frame must be introduced")
+
+  
+  # Generate train and test data frame
+  betas<-as.data.frame(betas)
+  train<-betas[!(row.names(betas) %in% sample_id),]
+  # Check if train dataset has enought variables
+  if(nrow(train) < 5){
+    stop("Not enough samples to run isolation forest")
   }
+  test<-betas[sample_id,]
   
-  if(is.null(disease.sample.name) | class(disease.sample.name) != "character")
-  {
-   stop("You must provide the name of the disease in 'disease.sample.name'")
-  }
-  
-  #Generate train and test(sample with suspected disease) data frame
-  beta.values<-as.data.frame(beta.values)
-  train<-beta.values[!(row.names(beta.values) %in% disease.sample.name),]
-  test<-beta.values[disease.sample.name,]
-  
-  #Run the isolation forest methods 
+  # Run the isolation forest methods 
       iso<-isotree::isolation.forest(df = train)
-      #Predict
+      # Predict
       outlier.score<-predict(iso,test)
 
   return(outlier.score)
